@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSwan Client Portal - Submission & Status</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html {
+            height: 100%;
+            overflow-y: scroll; 
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            height: auto; 
+            margin: 0;
+            padding: 20px;
+        }
+        body.modal-open {
+            overflow: hidden;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .header {
+            background-color: #2F3746;
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            text-align: left; 
+            overflow: hidden;
+        }
+        .main-button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            border: none;
+        }
+        .submit-request-button {
+            background-color: #97d5e6; 
+            color: #0d3945; 
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            border: none;
+        }
+        .submit-request-button:hover {
+            background-color: #79b9c9; 
+        }
+        
+        @keyframes phone-ring {
+            0% { transform: rotate(0) scale(1); }
+            15% { transform: rotate(10deg) scale(1.1); }
+            30% { transform: rotate(-10deg) scale(1.1); }
+            45% { transform: rotate(5deg) scale(1.05); }
+            60% { transform: rotate(-5deg) scale(1.05); }
+            75% { transform: rotate(0) scale(1); }
+            100% { transform: rotate(0) scale(1); }
+        }
+        .animated-phone {
+            display: inline-block;
+            animation: phone-ring 2.5s ease-in-out infinite 1s; 
+            transform-origin: 50% 50%;
+        }
+
+        .emoji-item {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem; 
+            opacity: 0;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        @keyframes emoji-sequence {
+            0% {
+                opacity: 0;
+                transform: translate(-150%, -150%) scale(0.5); 
+            }
+            40% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1.8); 
+            }
+            70% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1.8); 
+            }
+            100% {
+                opacity: 0;
+                transform: translate(150%, 150%) scale(0.1); 
+            }
+        }
+
+        .animate-emoji {
+            animation: emoji-sequence 2.5s ease-in-out forwards;
+        }
+        
+        .status-link-item {
+            display: block;
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #e9f5ff; 
+            border-left: 4px solid #007bff;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        /* Target Button */
+        .target-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+            background: none;
+            color: #FF6B6B;
+            padding: 5px;
+            border: none;
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .target-btn:hover {
+            transform: scale(1.2);
+        }
+        
+        /* Back Office */
+        #backOffice {
+            display: none;
+        }
+        .back-office-header {
+            background-color: #2F3746;
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .back-office-section {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #4B5563;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #82dfe0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(130, 223, 224, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #5ac8ca;
+            box-shadow: 0 6px 12px rgba(130, 223, 224, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
+        .project-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .project-item input, .project-item select {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #82dfe0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(130, 223, 224, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+        .project-item input:focus, .project-item select:focus {
+            outline: none;
+            border-color: #5ac8ca;
+            box-shadow: 0 6px 12px rgba(130, 223, 224, 0.4);
+            transform: translateY(-2px);
+        }
+        .delete-btn {
+            background: #EF4444;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .total-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #10B981;
+            padding: 15px;
+            background: #F3F4F6;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        .monthly-payment-item {
+            background: #F9FAFB;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #82dfe0;
+            box-shadow: 0 4px 6px rgba(130, 223, 224, 0.15);
+        }
+        .monthly-payment-item input, .monthly-payment-item select {
+            padding: 10px;
+            border: 2px solid #82dfe0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(130, 223, 224, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+        .monthly-payment-item input:focus, .monthly-payment-item select:focus {
+            outline: none;
+            border-color: #5ac8ca;
+            box-shadow: 0 6px 12px rgba(130, 223, 224, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        /* Front Office Form Fields */
+        #leadForm input, #leadForm select, #leadForm textarea {
+            border: 2px solid #82dfe0 !important;
+            box-shadow: 0 6px 10px rgba(130, 223, 224, 0.3), inset 0 3px 6px rgba(0, 0, 0, 0.08) !important;
+            transition: all 0.3s ease !important;
+            background: linear-gradient(145deg, #ffffff, #f8fcfc) !important;
+        }
+        #leadForm input:focus, #leadForm select:focus, #leadForm textarea:focus {
+            outline: none !important;
+            border-color: #5ac8ca !important;
+            box-shadow: 0 8px 16px rgba(130, 223, 224, 0.5), inset 0 3px 6px rgba(0, 0, 0, 0.08) !important;
+            transform: translateY(-3px);
+            background: linear-gradient(145deg, #ffffff, #e8f8f8) !important;
+        }
+        #leadForm input:hover, #leadForm select:hover, #leadForm textarea:hover {
+            border-color: #6cd6d8 !important;
+            box-shadow: 0 7px 14px rgba(130, 223, 224, 0.4), inset 0 3px 6px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        /* Status Check Input */
+        #statusCheckIdentifier {
+            border: 2px solid #82dfe0 !important;
+            box-shadow: 0 6px 10px rgba(130, 223, 224, 0.3), inset 0 3px 6px rgba(0, 0, 0, 0.08) !important;
+            transition: all 0.3s ease !important;
+            background: linear-gradient(145deg, #ffffff, #f8fcfc) !important;
+        }
+        #statusCheckIdentifier:focus {
+            outline: none !important;
+            border-color: #5ac8ca !important;
+            box-shadow: 0 8px 16px rgba(130, 223, 224, 0.5), inset 0 3px 6px rgba(0, 0, 0, 0.08) !important;
+            transform: translateY(-3px);
+            background: linear-gradient(145deg, #ffffff, #e8f8f8) !important;
+        }
+        #statusCheckIdentifier:hover {
+            border-color: #6cd6d8 !important;
+            box-shadow: 0 7px 14px rgba(130, 223, 224, 0.4), inset 0 3px 6px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        /* Login Modal Input */
+        #passwordInput {
+            border: 2px solid #82dfe0 !important;
+            box-shadow: 0 4px 6px rgba(130, 223, 224, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+            transition: all 0.3s ease !important;
+        }
+        #passwordInput:focus {
+            outline: none !important;
+            border-color: #5ac8ca !important;
+            box-shadow: 0 6px 12px rgba(130, 223, 224, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+<audio id="bellSound" src="https://assets.mixkit.co/sfx/preview/mixkit-uplifting-bells-notification-1279.mp3" preload="auto"></audio>
+
+<!-- FRONT OFFICE -->
+<div id="frontOffice" class="container">
+    <header class="header">
+        <div id="emojiContainer" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span class="emoji-item">💻</span>
+            <span class="emoji-item">😀</span>
+            <span class="emoji-item">🎯</span>
+            <span class="emoji-item">🌐</span>
+            <span class="emoji-item">💯</span>
+        </div>
+
+        <h1 class="text-3xl font-extrabold mb-4 text-white">Your Path to Online Success</h1>
+
+        <p class="text-lg mb-4 text-white">Thank you so much for taking the time to speak with me! 
+        I've uploaded the results of your **Website Analysis** for your review. Along with that, I've included access to my **Interactive Brand Hub**, where you can:</p>
+        
+        <ul class="list-disc list-inside text-white space-y-1 mb-4 text-base ml-4">
+            <li><strong class="font-semibold">Learn more about me in my bio</strong></li>
+            <li><strong class="font-semibold">Browse my gallery</strong> to see my previous work</li>
+            <li><strong class="font-semibold">Read client reviews</strong> and testimonials</li>
+            <li><strong class="font-semibold">View my search engine rankings</strong></li>
+            <li><strong class="font-semibold">Watch educational videos</strong> that explain the importance of professional web design, SEO, ad campaigns, and digital marketing</li>
+        </ul>
+        
+        <p class="text-lg mb-4 text-white">If you have any questions, feel free to contact me directly at <strong class="text-blue-400">(415) 877-0687</strong> <i class="fas fa-phone-alt text-lg animated-phone"></i>.</p>
+        <p class="text-lg mb-4 text-white">And if you'd like to see what I can do for your business, you're welcome to request a free demo by filling out the form below.</p>
+        
+        <div class="mt-6 text-right">
+            <p class="text-lg font-medium">Warm regards,<br><strong class="text-2xl font-extrabold text-white">The WebSwan</strong></p>
+            <p class="text-sm italic opacity-70">Putting the pieces together for your long-term online success</p>
+        </div>
+    </header>
+
+    <section class="mt-8 p-6 bg-white rounded-xl shadow-lg">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Request a Free Demo / Consultation ✏️</h2>
+        <form id="leadForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" id="name" placeholder="Full Name *" required class="p-2 border rounded-md">
+            <input type="email" id="email" placeholder="Email Address *" required class="p-2 border rounded-md">
+            <input type="tel" id="phone" placeholder="Phone Number *" required class="p-2 border rounded-md">
+            <input type="text" id="businessName" placeholder="Business Name *" required class="p-2 border rounded-md">
+            
+            <input type="url" id="websiteUrl" placeholder="Website URL (if you have one)" class="p-2 border rounded-md" value="https://www.">
+            
+            <select id="state" required class="p-2 border rounded-md">
+                <option value="" disabled selected>Select State *</option>
+            </select>
+
+            <textarea id="message" maxlength="3000" rows="6" class="p-2 border rounded-md md:col-span-2" placeholder="Enter your comments here (Optional, approx. 500 words capacity)"></textarea>
+            <div id="wordCountDisplay" class="text-sm text-gray-500 md:col-span-2">0/500 words approx.</div>
+
+            <div class="md:col-span-2">
+                <button type="submit" class="submit-request-button w-full">Submit Request</button>
+            </div>
+        </form>
+    </section>
+    
+    <section id="statusSection" class="mt-8 p-6 rounded-xl shadow-lg bg-white border border-gray-200">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Check Your Status & Access Links 🔗</h2>
+        <p class="mb-4 text-gray-600">Enter your email or phone number to retrieve your personalized documents.</p>
+        <form id="statusCheckForm" class="flex flex-col sm:flex-row gap-4">
+            <input type="text" id="statusCheckIdentifier" placeholder="Enter Email or Phone Number" required class="p-2 border rounded-md flex-grow text-gray-800">
+            <button type="submit" class="main-button bg-gray-700 hover:bg-gray-800 text-white">Check Status</button>
+        </form>
+        <div id="statusResult" class="mt-4 p-4 border rounded-md hidden"></div>
+    </section>
+</div>
+
+<!-- BACK OFFICE -->
+<div id="backOffice" class="container">
+    <div class="back-office-header">
+        <h1 class="text-3xl font-bold">WebSwan Back Office</h1>
+        <p class="mt-2">Document Management & Income Calculator</p>
+        <button id="backToFrontBtn" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg">← Back to Front</button>
+    </div>
+
+    <!-- Document Management -->
+    <div class="back-office-section">
+        <h2 class="text-2xl font-bold mb-4">📄 Document Management</h2>
+        
+        <div class="form-group">
+            <label>Lead ID/Email to Update:</label>
+            <input type="text" id="docLeadIdentifier" placeholder="Enter Lead ID or Email">
+        </div>
+
+        <div class="form-group">
+            <label>Upload Document (PDF, JPG, PNG, JPEG, TXT):</label>
+            <input type="file" id="docFileUpload" accept=".pdf,.jpg,.jpeg,.png,.txt" class="border p-2 rounded-md">
+        </div>
+
+        <div class="form-group">
+            <label>Free Demo URL:</label>
+            <input type="url" id="docDemoUrl" placeholder="https://demo-link.com">
+        </div>
+
+        <div class="form-group">
+            <label>Website Analysis Result URL:</label>
+            <input type="url" id="docAnalysisUrl" placeholder="https://analysis-result.com">
+        </div>
+
+        <button id="saveDocumentsBtn" class="main-button bg-green-600 hover:bg-green-700 text-white w-full">Save Documents</button>
+        <p id="docMessage" class="mt-3 text-center text-green-600 hidden"></p>
+    </div>
+
+    <!-- Income Calculator -->
+    <div class="back-office-section">
+        <h2 class="text-2xl font-bold mb-4">💰 Project Income Calculator</h2>
+        
+        <div id="projectsList"></div>
+        
+        <button id="addProjectBtn" class="main-button bg-blue-600 hover:bg-blue-700 text-white w-full mb-4">+ Add Project</button>
+        
+        <div class="total-display">
+            Total Project Income: $<span id="projectTotal">0.00</span>
+        </div>
+    </div>
+
+    <!-- Monthly Payments Tracker -->
+    <div class="back-office-section">
+        <h2 class="text-2xl font-bold mb-4">📅 Monthly Payments Tracker</h2>
+        
+        <div id="monthlyPaymentsList"></div>
+        
+        <button id="addMonthlyPaymentBtn" class="main-button bg-purple-600 hover:bg-purple-700 text-white w-full mb-4">+ Add Monthly Payment</button>
+        
+        <div class="total-display">
+            Total Monthly Income: $<span id="monthlyTotal">0.00</span>
+        </div>
+
+        <div class="total-display" style="background: #DBEAFE; color: #1E40AF;">
+            GROSS INCOME (Projects + Monthly): $<span id="grossTotal">0.00</span>
+        </div>
+    </div>
+</div>
+
+<!-- Target Button -->
+<button id="targetBtn" class="target-btn">🎯</button>
+
+<!-- Login Modal -->
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="closeLoginModal">&times;</span>
+        <h2 class="text-2xl font-bold mb-4">Back Office Login</h2>
+        <input type="password" id="passwordInput" placeholder="Enter Password" class="w-full p-3 border rounded-md mb-4">
+        <button id="loginBtn" class="main-button bg-blue-600 hover:bg-blue-700 text-white w-full">Login</button>
+        <p id="loginError" class="text-red-500 text-center mt-3 hidden">Incorrect password</p>
+    </div>
+</div>
+
+<!-- Submission Modal -->
+<div id="submissionModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="closeSubmissionModal">&times;</span>
+        <div id="submissionContent" class="relative z-10"></div>
+        <button class="ok-button main-button bg-blue-600 hover:bg-blue-700 w-full mt-4 text-white">OK</button>
+    </div>
+</div>
+
+<script>
+    const DB_NAME = 'WebSwanCRM_SingleFile';
+    const DB_VERSION = 4;
+    const LEAD_STORE_NAME = 'leads';
+    const ADMIN_PASSWORD = 'admin@777';
+    const MAX_WORD_COUNT = 500;
+    
+    const PROJECT_TYPES = [
+        'Standard Web Design',
+        'Premium Web Design',
+        'Premium Plus Web Design',
+        'Custom Calendars',
+        'Forms',
+        'Ad Campaign Videos',
+        'Ad Campaign Script',
+        'Interactive Brand Hub'
+    ];
+
+    const MONTHLY_SERVICES = [
+        'Website Maintenance',
+        'Hosting',
+        'Security',
+        'Reputation Management',
+        'Calendar',
+        'Interactive Brand Hub',
+        'Form'
+    ];
+
+    const US_STATES = [
+        "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", 
+        "District of Columbia", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", 
+        "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", 
+        "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", 
+        "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", 
+        "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", 
+        "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
+    ];
+
+    let db;
+    let projects = [];
+    let monthlyPayments = [];
+
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onerror = (event) => {
+                console.error("Database error:", event.target.error);
+                reject(event.target.error);
+            };
+
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                resolve(db);
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                
+                if (!db.objectStoreNames.contains(LEAD_STORE_NAME)) {
+                    const leadStore = db.createObjectStore(LEAD_STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                    leadStore.createIndex('email', 'email', { unique: false });
+                    leadStore.createIndex('phone', 'phone', { unique: false });
+                }
+            };
+        });
+    }
+
+    async function saveLead(lead) {
+        const db = await initDB();
+        const transaction = db.transaction([LEAD_STORE_NAME], 'readwrite');
+        const leadStore = transaction.objectStore(LEAD_STORE_NAME);
+
+        const newLead = { 
+            ...lead, 
+            status: 'new', 
+            timestamp: Date.now(),
+            documentLink: '',
+            brandHubLink: '',
+            demoUrl: '',
+            analysisUrl: '',
+            analysisDataUri: '',
+            analysisFileName: '',
+            analysisMimeType: '' 
+        };
+
+        return new Promise((resolve, reject) => {
+            const request = leadStore.add(newLead);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+    
+    async function findLeadByIdentifier(identifier) {
+        const db = await initDB();
+        const transaction = db.transaction([LEAD_STORE_NAME], 'readonly');
+        const leadStore = transaction.objectStore(LEAD_STORE_NAME);
+
+        const normalizedIdentifier = identifier.trim().toLowerCase().replace(/\D/g, '');
+
+        return new Promise((resolve) => {
+            const emailRequest = leadStore.index('email').get(identifier.toLowerCase());
+            emailRequest.onsuccess = () => {
+                if (emailRequest.result) {
+                    resolve(emailRequest.result);
+                    return;
+                }
+
+                const phoneIndex = leadStore.index('phone');
+                const phoneCursor = phoneIndex.openCursor();
+                
+                phoneCursor.onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        const leadPhone = cursor.value.phone.replace(/\D/g, '');
+                        if (leadPhone === normalizedIdentifier) {
+                            resolve(cursor.value);
+                            return;
+                        }
+                        cursor.continue();
+                    } else {
+                        resolve(null);
+                    }
+                };
+            };
+            emailRequest.onerror = () => resolve(null);
+        });
+    }
+
+    async function updateLead(lead) {
+        const db = await initDB();
+        const transaction = db.transaction([LEAD_STORE_NAME], 'readwrite');
+        const leadStore = transaction.objectStore(LEAD_STORE_NAME);
+
+        return new Promise((resolve, reject) => {
+            const request = leadStore.put(lead);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    function populateStateDropdown() {
+        const dropdown = document.getElementById('state');
+        dropdown.innerHTML = '<option value="" disabled selected>Select State *</option>'; 
+        if (dropdown) {
+            US_STATES.forEach(state => {
+                const option = document.createElement('option');
+                option.value = state;
+                option.textContent = state;
+                dropdown.appendChild(option);
+            });
+        }
+    }
+    
+    function handleWordCount(textarea) {
+        const text = textarea.value.trim();
+        const words = text ? text.split(/\s+/).filter(Boolean) : [];
+        const count = words.length;
+        const display = document.getElementById('wordCountDisplay');
+
+        display.textContent = `${count}/${MAX_WORD_COUNT} words approx.`;
+
+        if (count > MAX_WORD_COUNT) {
+            display.classList.add('text-red-500', 'font-bold');
+        } else {
+            display.classList.remove('text-red-500', 'font-bold');
+        }
+    }
+
+    function startEmojiSequence() {
+        const emojis = document.querySelectorAll('.emoji-item');
+        const duration = 2500;
+        const totalEmojis = emojis.length;
+        let index = 0;
+
+        function animateNextEmoji() {
+            emojis.forEach(e => {
+                e.style.display = 'none';
+                e.classList.remove('animate-emoji');
+            });
+
+            if (index >= totalEmojis) {
+                index = 0; 
+            }
+
+            const currentEmoji = emojis[index];
+            currentEmoji.style.display = 'block';
+            void currentEmoji.offsetWidth; 
+            currentEmoji.classList.add('animate-emoji');
+
+            index++;
+            setTimeout(animateNextEmoji, duration * 0.9);
+        }
+        
+        animateNextEmoji();
+    }
+
+    // Project Calculator Functions
+    function renderProjects() {
+        const container = document.getElementById('projectsList');
+        container.innerHTML = '';
+        
+        projects.forEach((project, index) => {
+            const div = document.createElement('div');
+            div.className = 'project-item';
+            div.innerHTML = `
+                <select onchange="updateProject(${index}, 'type', this.value)" class="p-2 border rounded-md">
+                    ${PROJECT_TYPES.map(type => `<option value="${type}" ${project.type === type ? 'selected' : ''}>${type}</option>`).join('')}
+                </select>
+                <input type="number" value="${project.price}" onchange="updateProject(${index}, 'price', this.value)" placeholder="Price" class="p-2 border rounded-md">
+                <input type="text" value="${project.description}" onchange="updateProject(${index}, 'description', this.value)" placeholder="Description" class="p-2 border rounded-md">
+                <button onclick="deleteProject(${index})" class="delete-btn">Delete</button>
+            `;
+            container.appendChild(div);
+        });
+        
+        calculateTotals();
+    }
+
+    function addProject() {
+        projects.push({ type: PROJECT_TYPES[0], price: 0, description: '' });
+        renderProjects();
+        saveToStorage();
+    }
+
+    function updateProject(index, field, value) {
+        projects[index][field] = field === 'price' ? parseFloat(value) || 0 : value;
+        calculateTotals();
+        saveToStorage();
+    }
+
+    function deleteProject(index) {
+        projects.splice(index, 1);
+        renderProjects();
+        saveToStorage();
+    }
+
+    // Monthly Payments Functions
+    function renderMonthlyPayments() {
+        const container = document.getElementById('monthlyPaymentsList');
+        container.innerHTML = '';
+        
+        monthlyPayments.forEach((payment, index) => {
+            const div = document.createElement('div');
+            div.className = 'monthly-payment-item';
+            div.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <select onchange="updateMonthlyPayment(${index}, 'service', this.value)" class="p-2 border rounded-md">
+                        ${MONTHLY_SERVICES.map(svc => `<option value="${svc}" ${payment.service === svc ? 'selected' : ''}>${svc}</option>`).join('')}
+                    </select>
+                    <input type="number" value="${payment.amount}" onchange="updateMonthlyPayment(${index}, 'amount', this.value)" placeholder="Amount" class="p-2 border rounded-md">
+                    <input type="date" value="${payment.anniversary}" onchange="updateMonthlyPayment(${index}, 'anniversary', this.value)" class="p-2 border rounded-md">
+                </div>
+                <button onclick="deleteMonthlyPayment(${index})" class="delete-btn mt-2">Delete</button>
+            `;
+            container.appendChild(div);
+        });
+        
+        calculateTotals();
+    }
+
+    function addMonthlyPayment() {
+        monthlyPayments.push({ service: MONTHLY_SERVICES[0], amount: 0, anniversary: '' });
+        renderMonthlyPayments();
+        saveToStorage();
+    }
+
+    function updateMonthlyPayment(index, field, value) {
+        monthlyPayments[index][field] = field === 'amount' ? parseFloat(value) || 0 : value;
+        calculateTotals();
+        saveToStorage();
+    }
+
+    function deleteMonthlyPayment(index) {
+        monthlyPayments.splice(index, 1);
+        renderMonthlyPayments();
+        saveToStorage();
+    }
+
+    function calculateTotals() {
+        const projectTotal = projects.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
+        const monthlyTotal = monthlyPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        const grossTotal = projectTotal + monthlyTotal;
+        
+        document.getElementById('projectTotal').textContent = projectTotal.toFixed(2);
+        document.getElementById('monthlyTotal').textContent = monthlyTotal.toFixed(2);
+        document.getElementById('grossTotal').textContent = grossTotal.toFixed(2);
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('webswan_projects', JSON.stringify(projects));
+        localStorage.setItem('webswan_monthly', JSON.stringify(monthlyPayments));
+    }
+
+    function loadFromStorage() {
+        const savedProjects = localStorage.getItem('webswan_projects');
+        const savedMonthly = localStorage.getItem('webswan_monthly');
+        
+        if (savedProjects) projects = JSON.parse(savedProjects);
+        if (savedMonthly) monthlyPayments = JSON.parse(savedMonthly);
+        
+        renderProjects();
+        renderMonthlyPayments();
+    }
+
+    // Make functions global
+    window.updateProject = updateProject;
+    window.deleteProject = deleteProject;
+    window.updateMonthlyPayment = updateMonthlyPayment;
+    window.deleteMonthlyPayment = deleteMonthlyPayment;
+
+    // Document Management
+    async function readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target.result);
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function saveDocuments() {
+        const identifier = document.getElementById('docLeadIdentifier').value.trim();
+        if (!identifier) {
+            alert('Please enter a Lead ID or Email');
+            return;
+        }
+
+        const lead = await findLeadByIdentifier(identifier);
+        if (!lead) {
+            alert('Lead not found');
+            return;
+        }
+
+        const fileInput = document.getElementById('docFileUpload');
+        const demoUrl = document.getElementById('docDemoUrl').value.trim();
+        const analysisUrl = document.getElementById('docAnalysisUrl').value.trim();
+
+        // Handle file upload
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File too large. Please use a URL for large files.');
+                return;
+            }
+            const dataUri = await readFileAsDataURL(file);
+            lead.analysisDataUri = dataUri;
+            lead.analysisFileName = file.name;
+            lead.analysisMimeType = file.type;
+        }
+
+        lead.demoUrl = demoUrl;
+        lead.analysisUrl = analysisUrl;
+        lead.status = 'completed';
+
+        await updateLead(lead);
+        
+        document.getElementById('docMessage').textContent = 'Documents saved successfully!';
+        document.getElementById('docMessage').classList.remove('hidden');
+        
+        setTimeout(() => {
+            document.getElementById('docMessage').classList.add('hidden');
+        }, 3000);
+    }
+
+    async function checkLeadStatus(e) {
+        e.preventDefault();
+        const identifierInput = document.getElementById('statusCheckIdentifier');
+        const identifier = identifierInput.value.trim();
+        const resultDiv = document.getElementById('statusResult');
+        
+        resultDiv.classList.remove('hidden', 'border-red-400', 'bg-red-50', 'border-green-400', 'bg-green-50', 'border-yellow-400', 'bg-yellow-50');
+        resultDiv.innerHTML = '<p class="text-center text-gray-600">Searching...</p>';
+
+        const lead = await findLeadByIdentifier(identifier);
+        
+        if (!lead) {
+            resultDiv.innerHTML = '<p class="font-bold text-red-700">❌ Lead Not Found</p><p class="text-sm">Please check your email or phone number and try again.</p>';
+            resultDiv.classList.add('border-red-400', 'bg-red-50');
+        } else {
+            let linksHtml = '';
+            
+            const hasFile = lead.analysisDataUri && lead.analysisDataUri.trim() !== '';
+            const hasAnalysisUrl = lead.analysisUrl && lead.analysisUrl.trim() !== '';
+            const hasDemoUrl = lead.demoUrl && lead.demoUrl.trim() !== '';
+            
+            const linksReady = hasFile || hasAnalysisUrl || hasDemoUrl;
+
+            if (linksReady) {
+                if (hasFile) {
+                    linksHtml += `<a href="${lead.analysisDataUri}" download="${lead.analysisFileName}" class="status-link-item hover:bg-blue-100">
+                        <i class="fas fa-file-download mr-2 text-blue-600"></i><strong>Download Analysis:</strong> ${lead.analysisFileName}
+                    </a>`;
+                }
+                
+                if (hasAnalysisUrl) {
+                    linksHtml += `<a href="${lead.analysisUrl}" target="_blank" class="status-link-item hover:bg-blue-100">
+                        <i class="fas fa-file-alt mr-2 text-blue-600"></i><strong>Website Analysis:</strong> Click here to view
+                    </a>`;
+                }
+
+                if (hasDemoUrl) {
+                    linksHtml += `<a href="${lead.demoUrl}" target="_blank" class="status-link-item hover:bg-blue-100">
+                        <i class="fas fa-link mr-2 text-blue-600"></i><strong>Free Demo:</strong> Access your demo
+                    </a>`;
+                }
+
+                resultDiv.innerHTML = `
+                    <p class="font-bold text-lg text-green-700">✅ Status: ${lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}</p>
+                    <p class="text-sm text-gray-700">Hello ${lead.name}, your documents are ready! Find the links below:</p>
+                    <div class="mt-3">${linksHtml}</div>
+                `;
+                resultDiv.classList.add('border-green-400', 'bg-green-50');
+            } else {
+                resultDiv.innerHTML = `
+                    <p class="font-bold text-lg text-yellow-700">⏳ Status: ${lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}</p>
+                    <p class="text-sm text-gray-700">Your request has been received. Your documents are being prepared!</p>
+                `;
+                resultDiv.classList.add('border-yellow-400', 'bg-yellow-50');
+            }
+        }
+        resultDiv.classList.remove('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await initDB();
+        
+        populateStateDropdown();
+        startEmojiSequence();
+        loadFromStorage();
+        
+        document.getElementById('message').addEventListener('input', (e) => handleWordCount(e.target));
+        handleWordCount(document.getElementById('message'));
+
+        // Lead Form Submit
+        document.getElementById('leadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const leadData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value.toLowerCase(), 
+                phone: document.getElementById('phone').value,
+                businessName: document.getElementById('businessName').value,
+                websiteUrl: document.getElementById('websiteUrl').value,
+                state: document.getElementById('state').value,
+                message: document.getElementById('message').value
+            };
+
+            const newId = await saveLead(leadData);
+
+            const bellSound = document.getElementById("bellSound");
+            bellSound.currentTime = 0; 
+            bellSound.play().catch(err => {
+                console.error("Sound blocked:", err);
+            });
+
+            document.getElementById('submissionContent').innerHTML = `
+                 <div class="text-center p-2">
+                    <p class="text-xl font-extrabold mb-3 text-green-600">Request Submitted Successfully!</p>
+                    <p class="text-gray-700">Your information has been received. Your unique **Lead ID is: <strong class="text-red-500">${newId}</strong>**. Please use your email or phone number to check your status below.</p>
+                </div>
+            `;
+            document.getElementById('submissionModal').style.display = 'block';
+            document.body.classList.add('modal-open');
+            document.getElementById('leadForm').reset();
+            document.getElementById('wordCountDisplay').textContent = `0/${MAX_WORD_COUNT} words approx.`;
+        });
+        
+        // Status Check
+        document.getElementById('statusCheckForm').addEventListener('submit', checkLeadStatus);
+        
+        // Modal Handlers
+        document.getElementById('closeSubmissionModal').addEventListener('click', () => {
+            document.getElementById('submissionModal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        });
+        
+        document.querySelector('#submissionModal .ok-button').addEventListener('click', () => {
+            document.getElementById('submissionModal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        });
+
+        // Target Button & Login
+        document.getElementById('targetBtn').addEventListener('click', () => {
+            document.getElementById('loginModal').style.display = 'block';
+            document.body.classList.add('modal-open');
+        });
+
+        document.getElementById('closeLoginModal').addEventListener('click', () => {
+            document.getElementById('loginModal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        });
+
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            const password = document.getElementById('passwordInput').value;
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('frontOffice').style.display = 'none';
+                document.getElementById('backOffice').style.display = 'block';
+                document.body.classList.remove('modal-open');
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('loginError').classList.add('hidden');
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        });
+
+        // Back to Front
+        document.getElementById('backToFrontBtn').addEventListener('click', () => {
+            document.getElementById('backOffice').style.display = 'none';
+            document.getElementById('frontOffice').style.display = 'block';
+        });
+
+        // Document Management
+        document.getElementById('saveDocumentsBtn').addEventListener('click', saveDocuments);
+
+        // Project Calculator
+        document.getElementById('addProjectBtn').addEventListener('click', addProject);
+
+        // Monthly Payments
+        document.getElementById('addMonthlyPaymentBtn').addEventListener('click', addMonthlyPayment);
+    });
+</script>
+</body>
+</html>
