@@ -165,6 +165,7 @@
             box-shadow: 0 4px 6px rgba(130, 223, 224, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.06);
             transition: all 0.3s ease;
             font-size: 1rem;
+            box-sizing: border-box;
         }
         
         .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
@@ -180,7 +181,7 @@
             padding: 14px 28px;
             border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
             font-weight: bold;
             border: none;
             width: 100%;
@@ -190,6 +191,8 @@
         
         .submit-btn:hover {
             background-color: #79b9c9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
         
         .privacy-notice {
@@ -251,6 +254,11 @@
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            color: #000;
         }
         
         .demo-prompt-modal .modal-content {
@@ -309,6 +317,12 @@
             padding: 8px 12px;
             border-radius: 6px;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .delete-btn:hover {
+            background: #DC2626;
+            transform: translateY(-2px);
         }
         
         .total-display {
@@ -365,6 +379,10 @@
             transform: scale(1.2);
         }
         
+        .hidden {
+            display: none;
+        }
+        
         @media (max-width: 768px) {
             .button-container {
                 flex-direction: column;
@@ -404,11 +422,11 @@
     </header>
 
     <div class="button-container">
-        <a href="#" id="analysisBtn" class="access-button analysis-btn">
+        <a href="https://taniad2169.github.io/WS-Analysis-Result/" id="analysisBtn" class="access-button analysis-btn" target="_blank">
             <i class="fas fa-chart-bar mr-2"></i> View Analysis Results
         </a>
         
-        <a href="#" id="brandhubBtn" class="access-button brandhub-btn">
+        <a href="#" id="brandhubBtn" class="access-button brandhub-btn" target="_blank">
             <i class="fas fa-cube mr-2"></i> Interactive Brand Hub
         </a>
         
@@ -485,26 +503,36 @@
     <div class="back-office-header">
         <h1 class="text-3xl font-bold">WebSwan Back Office</h1>
         <p class="mt-2">Document Management & Income Calculator</p>
-        <button id="backToFrontBtn" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg">← Back to Front</button>
+        <button id="backToFrontBtn" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition-all">← Back to Front</button>
     </div>
 
     <!-- Document Management -->
     <div class="back-office-section">
-        <h2 class="text-2xl font-bold mb-4">📄 Document Management</h2>
+        <h2 class="text-2xl font-bold mb-4">📄 Document Management - Upload Report</h2>
         
         <div class="form-group">
-            <label>Lead ID/Email to Update:</label>
-            <input type="text" id="docLeadIdentifier" placeholder="Enter Lead ID or Email" value="myriam@lcmspa.com">
+            <label>Business Name *</label>
+            <input type="text" id="docBusinessName" placeholder="Enter Business Name">
+        </div>
+
+        <div class="form-group">
+            <label>Phone Number *</label>
+            <input type="tel" id="docPhoneNumber" placeholder="Enter Phone Number">
+        </div>
+
+        <div class="form-group">
+            <label>Lead ID/Email:</label>
+            <input type="text" id="docLeadIdentifier" placeholder="Enter Lead ID or Email">
         </div>
 
         <div class="form-group">
             <label>Upload Website Analysis Document (PDF, JPG, PNG, JPEG, TXT):</label>
-            <input type="file" id="docFileUpload" accept=".pdf,.jpg,.jpeg,.png,.txt" class="border p-2 rounded-md">
+            <input type="file" id="docFileUpload" accept=".pdf,.jpg,.jpeg,.png,.txt" class="border p-2 rounded-md w-full">
         </div>
 
         <div class="form-group">
             <label>Free Demo URL:</label>
-            <input type="url" id="docDemoUrl" placeholder="https://demo-link.com" value="https://demo-link.com">
+            <input type="url" id="docDemoUrl" placeholder="https://demo-link.com">
         </div>
 
         <div class="form-group">
@@ -512,8 +540,38 @@
             <input type="url" id="docBrandhubUrl" placeholder="https://brandhub-link.com" value="https://taniad2169.github.io/WebSwan-Brand-Hub/">
         </div>
 
-        <button id="saveDocumentsBtn" class="submit-btn">Save Documents</button>
+        <div class="flex gap-3">
+            <button id="saveDocumentsBtn" class="submit-btn">Save Documents</button>
+            <button id="resetDocumentsBtn" class="submit-btn" style="background-color: #EF4444;">Reset Form</button>
+        </div>
         <p id="docMessage" class="mt-3 text-center text-green-600 hidden"></p>
+    </div>
+
+    <!-- View Saved Reports -->
+    <div class="back-office-section">
+        <h2 class="text-2xl font-bold mb-4">🔍 View Saved Reports</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+                <label>Business Name</label>
+                <input type="text" id="searchBusinessName" placeholder="Enter Business Name">
+            </div>
+
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="searchPhoneNumber" placeholder="Enter Phone Number">
+            </div>
+        </div>
+
+        <button id="searchReportBtn" class="submit-btn">Search Report</button>
+        
+        <div id="reportResults" class="mt-4 hidden">
+            <div style="background: #F3F4F6; padding: 20px; border-radius: 8px;">
+                <h3 class="text-xl font-bold mb-3">Client Details</h3>
+                <div id="reportDetailsContent"></div>
+            </div>
+        </div>
+        <p id="searchMessage" class="mt-3 text-center text-red-600 hidden"></p>
     </div>
 
     <!-- Income Calculator -->
@@ -568,7 +626,7 @@
         <div class="p-4">
             <i class="fas fa-desktop text-green-500 text-5xl mb-4"></i>
             <h3 class="text-2xl font-bold mb-2">Request Your Free Demo</h3>
-            <p class="text-gray-700 mb-4">Fill out the form below to request your free website demo.</p>
+            <p class="text-gray-700 mb-4">Please fill out the form below to request your free website demo.</p>
             <button class="submit-btn" id="goToFormBtn">Go to Form</button>
         </div>
     </div>
@@ -708,30 +766,53 @@
     }
 
     function saveToStorage() {
-        localStorage.setItem('webswan_projects', JSON.stringify(projects));
-        localStorage.setItem('webswan_monthly', JSON.stringify(monthlyPayments));
-        localStorage.setItem('webswan_documents', JSON.stringify(documentData));
+        const data = {
+            projects: projects,
+            monthlyPayments: monthlyPayments,
+            documents: documentData
+        };
+        const dataStr = JSON.stringify(data);
+        const encodedData = btoa(dataStr);
+        const chunks = encodedData.match(/.{1,1000}/g) || [];
+        chunks.forEach((chunk, i) => {
+            sessionStorage.setItem(`webswan_data_${i}`, chunk);
+        });
+        sessionStorage.setItem('webswan_chunks', chunks.length.toString());
     }
 
     function loadFromStorage() {
-        const savedProjects = localStorage.getItem('webswan_projects');
-        const savedMonthly = localStorage.getItem('webswan_monthly');
-        const savedDocuments = localStorage.getItem('webswan_documents');
-        
-        if (savedProjects) projects = JSON.parse(savedProjects);
-        if (savedMonthly) monthlyPayments = JSON.parse(savedMonthly);
-        if (savedDocuments) documentData = JSON.parse(savedDocuments);
-        
-        renderProjects();
-        renderMonthlyPayments();
-        updateFrontOfficeLinks();
+        try {
+            const numChunks = parseInt(sessionStorage.getItem('webswan_chunks') || '0');
+            if (numChunks === 0) return;
+            
+            let encodedData = '';
+            for (let i = 0; i < numChunks; i++) {
+                encodedData += sessionStorage.getItem(`webswan_data_${i}`) || '';
+            }
+            
+            const dataStr = atob(encodedData);
+            const data = JSON.parse(dataStr);
+            
+            if (data.projects) projects = data.projects;
+            if (data.monthlyPayments) monthlyPayments = data.monthlyPayments;
+            if (data.documents) documentData = data.documents;
+            
+            renderProjects();
+            renderMonthlyPayments();
+            updateFrontOfficeLinks();
+        } catch (e) {
+            console.error('Error loading data:', e);
+        }
     }
 
     // Document Management Functions
     function saveDocuments() {
+        const businessName = document.getElementById('docBusinessName').value.trim();
+        const phoneNumber = document.getElementById('docPhoneNumber').value.trim();
         const identifier = document.getElementById('docLeadIdentifier').value.trim();
-        if (!identifier) {
-            alert('Please enter a Lead ID or Email');
+
+        if (!businessName || !phoneNumber) {
+            alert('Please enter Business Name and Phone Number');
             return;
         }
 
@@ -739,8 +820,14 @@
         const demoUrl = document.getElementById('docDemoUrl').value.trim();
         const brandhubUrl = document.getElementById('docBrandhubUrl').value.trim();
 
+        // Create unique key using business name and phone
+        const recordKey = `${businessName.toLowerCase()}_${phoneNumber}`;
+
         // Store document data
-        documentData[identifier] = {
+        documentData[recordKey] = {
+            businessName: businessName,
+            phoneNumber: phoneNumber,
+            leadIdentifier: identifier,
             demoUrl: demoUrl,
             brandhubUrl: brandhubUrl,
             timestamp: new Date().toISOString()
@@ -756,9 +843,9 @@
             
             const reader = new FileReader();
             reader.onload = function(e) {
-                documentData[identifier].analysisDataUri = e.target.result;
-                documentData[identifier].analysisFileName = file.name;
-                documentData[identifier].analysisMimeType = file.type;
+                documentData[recordKey].analysisDataUri = e.target.result;
+                documentData[recordKey].analysisFileName = file.name;
+                documentData[recordKey].analysisMimeType = file.type;
                 
                 // Save to storage
                 saveToStorage();
@@ -792,25 +879,78 @@
         }
     }
 
+    function resetDocuments() {
+        const brandhubUrl = document.getElementById('docBrandhubUrl').value;
+        
+        // Clear all fields except Interactive Brand Hub URL
+        document.getElementById('docBusinessName').value = '';
+        document.getElementById('docPhoneNumber').value = '';
+        document.getElementById('docLeadIdentifier').value = '';
+        document.getElementById('docFileUpload').value = '';
+        document.getElementById('docDemoUrl').value = '';
+        
+        // Keep the Brand Hub URL
+        document.getElementById('docBrandhubUrl').value = brandhubUrl;
+        
+        // Hide any messages
+        document.getElementById('docMessage').classList.add('hidden');
+    }
+
+    function searchReport() {
+        const businessName = document.getElementById('searchBusinessName').value.trim();
+        const phoneNumber = document.getElementById('searchPhoneNumber').value.trim();
+        
+        if (!businessName || !phoneNumber) {
+            document.getElementById('searchMessage').textContent = 'Please enter both Business Name and Phone Number';
+            document.getElementById('searchMessage').classList.remove('hidden');
+            document.getElementById('reportResults').classList.add('hidden');
+            return;
+        }
+
+        const recordKey = `${businessName.toLowerCase()}_${phoneNumber}`;
+        const record = documentData[recordKey];
+
+        if (record) {
+            document.getElementById('searchMessage').classList.add('hidden');
+            document.getElementById('reportResults').classList.remove('hidden');
+            
+            let detailsHTML = `
+                <p><strong>Business Name:</strong> ${record.businessName}</p>
+                <p><strong>Phone Number:</strong> ${record.phoneNumber}</p>
+                <p><strong>Lead ID/Email:</strong> ${record.leadIdentifier || 'N/A'}</p>
+                <p><strong>Demo URL:</strong> ${record.demoUrl ? `<a href="${record.demoUrl}" target="_blank" style="color: #3B82F6; text-decoration: underline;">${record.demoUrl}</a>` : 'N/A'}</p>
+                <p><strong>Brand Hub URL:</strong> ${record.brandhubUrl ? `<a href="${record.brandhubUrl}" target="_blank" style="color: #3B82F6; text-decoration: underline;">${record.brandhubUrl}</a>` : 'N/A'}</p>
+                <p><strong>Saved on:</strong> ${new Date(record.timestamp).toLocaleString()}</p>
+            `;
+
+            if (record.analysisFileName) {
+                detailsHTML += `
+                    <p style="margin-top: 15px;"><strong>Analysis Document:</strong> ${record.analysisFileName}</p>
+                    <a href="${record.analysisDataUri}" download="${record.analysisFileName}" style="display: inline-block; margin-top: 10px; background-color: #3B82F6; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">Download Document</a>
+                `;
+            }
+
+            document.getElementById('reportDetailsContent').innerHTML = detailsHTML;
+        } else {
+            document.getElementById('searchMessage').textContent = 'No report found for this business name and phone number';
+            document.getElementById('searchMessage').classList.remove('hidden');
+            document.getElementById('reportResults').classList.add('hidden');
+        }
+    }
+
     function updateFrontOfficeLinks() {
         // Update the front office button URLs based on saved document data
-        // For demo purposes, we'll use the first identifier in documentData
         const identifiers = Object.keys(documentData);
         if (identifiers.length > 0) {
             const data = documentData[identifiers[0]];
             
-            if (data.analysisDataUri) {
-                document.getElementById('analysisBtn').href = data.analysisDataUri;
-                document.getElementById('analysisBtn').download = data.analysisFileName || 'analysis-document';
-            }
-            
+            // Update Brand Hub URL
             if (data.brandhubUrl) {
                 document.getElementById('brandhubBtn').href = data.brandhubUrl;
             }
             
-            if (data.demoUrl) {
-                // Demo URL is handled through the form, but we can store it for reference
-            }
+            // Note: Analysis Results button is hardcoded to your GitHub Pages URL
+            // Demo URL is handled through the form
         }
     }
 
@@ -824,6 +964,9 @@
         // Load data from storage
         loadFromStorage();
         
+        // Set Analysis Results button to your GitHub Pages URL
+        document.getElementById('analysisBtn').href = "https://taniad2169.github.io/WS-Analysis-Result/";
+        
         // Demo button opens modal instead of direct link
         document.getElementById('demoBtn').addEventListener('click', function() {
             document.getElementById('demoPromptModal').style.display = 'block';
@@ -835,7 +978,7 @@
             document.getElementById('demoPromptModal').style.display = 'none';
             document.body.classList.remove('modal-open');
             // Scroll to form
-            document.getElementById('demoRequestForm').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('demoRequestForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         
         // Form submission handler
@@ -864,7 +1007,8 @@
             document.body.classList.remove('modal-open');
         });
 
-        document.getElementById('loginBtn').addEventListener('click', function() {
+        // Login function
+        function performLogin() {
             const password = document.getElementById('passwordInput').value;
             if (password === ADMIN_PASSWORD) {
                 document.getElementById('loginModal').style.display = 'none';
@@ -876,6 +1020,15 @@
             } else {
                 document.getElementById('loginError').classList.remove('hidden');
             }
+        }
+
+        document.getElementById('loginBtn').addEventListener('click', performLogin);
+
+        // Allow Enter key to login
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performLogin();
+            }
         });
 
         // Back to Front
@@ -886,6 +1039,8 @@
 
         // Document Management
         document.getElementById('saveDocumentsBtn').addEventListener('click', saveDocuments);
+        document.getElementById('resetDocumentsBtn').addEventListener('click', resetDocuments);
+        document.getElementById('searchReportBtn').addEventListener('click', searchReport);
 
         // Project Calculator
         document.getElementById('addProjectBtn').addEventListener('click', addProject);
