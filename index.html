@@ -4,8 +4,15 @@
     <meta charset="UTF-8">
     <title>WebSwan - Your Analysis Results</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Using local Tailwind CSS to avoid production warning -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
     <style>
         html {
             height: 100%;
@@ -192,6 +199,37 @@
             background-color: #79b9c9;
         }
         
+        .upload-btn {
+            background-color: #10B981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+        }
+        
+        .upload-btn:disabled {
+            background-color: #6B7280;
+            cursor: not-allowed;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #E5E7EB;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #10B981;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
         .privacy-notice {
             font-size: 0.85rem;
             color: #6B7280;
@@ -365,41 +403,32 @@
             transform: scale(1.2);
         }
 
-        /* PDF Viewer Styles */
-        #pdfViewer {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: white;
-            z-index: 2000;
+        /* Upload Status */
+        .upload-status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            text-align: center;
         }
         
-        .pdf-header {
-            background: #2F3746;
-            color: white;
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .upload-status.success {
+            background-color: #D1FAE5;
+            color: #065F46;
+            border: 1px solid #A7F3D0;
         }
         
-        .pdf-content {
-            width: 100%;
-            height: calc(100% - 60px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        .upload-status.error {
+            background-color: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #FECACA;
         }
         
-        .pdf-frame {
-            width: 100%;
-            height: 100%;
-            border: none;
+        .upload-status.info {
+            background-color: #DBEAFE;
+            color: #1E40AF;
+            border: 1px solid #BFDBFE;
         }
-        
+
         @media (max-width: 768px) {
             .button-container {
                 flex-direction: column;
@@ -423,17 +452,6 @@
 </head>
 <body>
 
-<!-- PDF Viewer (hidden by default) -->
-<div id="pdfViewer">
-    <div class="pdf-header">
-        <h2 id="pdfTitle">Your Analysis Document</h2>
-        <button id="closePdf" class="text-white text-2xl">&times;</button>
-    </div>
-    <div class="pdf-content">
-        <iframe id="pdfFrame" class="pdf-frame" src=""></iframe>
-    </div>
-</div>
-
 <!-- FRONT OFFICE -->
 <div id="frontOffice" class="container">
     <header class="header">
@@ -450,9 +468,9 @@
     </header>
 
     <div class="button-container">
-        <button id="analysisBtn" class="access-button analysis-btn">
+        <a href="#" id="analysisBtn" class="access-button analysis-btn" target="_blank">
             <i class="fas fa-chart-bar mr-2"></i> View Analysis Results
-        </button>
+        </a>
         
         <a href="https://taniad2169.github.io/WebSwan-Brand-Hub/" id="brandhubBtn" class="access-button brandhub-btn" target="_blank">
             <i class="fas fa-cube mr-2"></i> Interactive Brand Hub
@@ -573,8 +591,14 @@
         </div>
 
         <div class="form-group">
-            <label>Upload Website Analysis Document (PDF, JPG, PNG, JPEG, TXT):</label>
-            <input type="file" id="docFileUpload" accept=".pdf,.jpg,.jpeg,.png,.txt" class="border p-2 rounded-md">
+            <label>Upload Website Analysis Document (PDF only):</label>
+            <input type="file" id="docFileUpload" accept=".pdf" class="border p-2 rounded-md">
+            <div class="progress-bar mt-2">
+                <div id="uploadProgress" class="progress-fill"></div>
+            </div>
+            <div id="uploadStatus" class="upload-status info hidden">
+                Upload progress will appear here...
+            </div>
         </div>
 
         <div class="form-group">
@@ -683,6 +707,21 @@
     localStorage.removeItem('webswan_temp_cache');
     
     const ADMIN_PASSWORD = 'admin@777';
+    
+    // 🔥 FIREBASE CONFIGURATION - REPLACE WITH YOUR ACTUAL FIREBASE CONFIG
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+    const firestore = firebase.firestore();
     
     const PROJECT_TYPES = [
         'Standard Web Design',
@@ -875,7 +914,7 @@
                     <strong>${result.email}</strong>
                     <div class="text-sm text-gray-600">
                         Phone: ${result.data.phone || 'Not provided'} | 
-                        ${result.data.analysisFileName ? '📄 Has Report' : 'No report'} |
+                        ${result.data.pdfUrl ? '📄 Has Report' : 'No report'} |
                         Saved: ${new Date(result.data.timestamp).toLocaleDateString()}
                     </div>
                 </div>
@@ -900,8 +939,8 @@
         document.getElementById('crmSearchInput').value = '';
     }
 
-    // Document Management Functions
-    function saveDocuments() {
+    // Document Management Functions with Firebase Upload
+    async function saveDocuments() {
         const identifier = document.getElementById('docLeadIdentifier').value.trim();
         if (!identifier) {
             alert('Please enter a Client Email');
@@ -913,62 +952,100 @@
         const demoUrl = document.getElementById('docDemoUrl').value.trim();
         const brandhubUrl = document.getElementById('docBrandhubUrl').value.trim();
 
-        // Store document data with phone number for CRM search
+        // Show upload status
+        const uploadStatus = document.getElementById('uploadStatus');
+        const uploadProgress = document.getElementById('uploadProgress');
+        
+        uploadStatus.classList.remove('hidden');
+        uploadStatus.classList.remove('success', 'error');
+        uploadStatus.classList.add('info');
+        uploadStatus.textContent = 'Preparing upload...';
+
+        // Store basic client data
         documentData[identifier] = {
             phone: clientPhone,
             demoUrl: demoUrl,
-            brandhubUrl: "https://taniad2169.github.io/WebSwan-Brand-Hub/", // ALWAYS keep your brand hub
+            brandhubUrl: "https://taniad2169.github.io/WebSwan-Brand-Hub/",
             timestamp: new Date().toISOString()
         };
 
-        // Handle file upload
+        // Handle file upload to Firebase Storage
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            if (file.size > 5 * 1024 * 1024) {
-                alert('File too large. Please use a URL for large files.');
+            
+            if (file.type !== 'application/pdf') {
+                uploadStatus.classList.add('error');
+                uploadStatus.textContent = 'Please upload a PDF file only.';
                 return;
             }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                documentData[identifier].analysisDataUri = e.target.result;
-                documentData[identifier].analysisFileName = file.name;
-                documentData[identifier].analysisMimeType = file.type;
+
+            try {
+                // Create a unique filename
+                const fileName = `analysis_${identifier}_${Date.now()}.pdf`;
+                const storageRef = storage.ref(`pdfs/${fileName}`);
                 
-                // Save to storage
-                saveToStorage();
+                uploadStatus.textContent = 'Uploading PDF to secure storage...';
                 
-                // Update client list
-                renderClientList();
+                // Upload file to Firebase Storage
+                const uploadTask = storageRef.put(file);
                 
-                // Show success message
-                document.getElementById('docMessage').textContent = `Documents saved successfully for ${identifier}!`;
-                document.getElementById('docMessage').classList.remove('hidden');
+                // Monitor upload progress
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        uploadProgress.style.width = progress + '%';
+                        uploadStatus.textContent = `Uploading: ${Math.round(progress)}%`;
+                    },
+                    (error) => {
+                        console.error('Upload error:', error);
+                        uploadStatus.classList.add('error');
+                        uploadStatus.textContent = 'Upload failed! Please try again.';
+                    },
+                    async () => {
+                        // Upload complete - get download URL
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        
+                        // Save PDF URL to document data
+                        documentData[identifier].pdfUrl = downloadURL;
+                        documentData[identifier].pdfFileName = file.name;
+                        
+                        // Save to storage
+                        saveToStorage();
+                        
+                        // Update client list
+                        renderClientList();
+                        
+                        // Show success message
+                        uploadStatus.classList.add('success');
+                        uploadStatus.textContent = 'PDF uploaded successfully! Document saved.';
+                        
+                        // Clear the form for next client
+                        clearForm();
+                        
+                        setTimeout(() => {
+                            uploadStatus.classList.add('hidden');
+                            uploadProgress.style.width = '0%';
+                        }, 3000);
+                    }
+                );
                 
-                // Clear the form for next client
-                clearForm();
-                
-                setTimeout(() => {
-                    document.getElementById('docMessage').classList.add('hidden');
-                }, 3000);
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                uploadStatus.classList.add('error');
+                uploadStatus.textContent = 'Upload failed! Please check your Firebase configuration.';
+            }
         } else {
-            // Save to storage
+            // No file to upload, just save the client data
             saveToStorage();
-            
-            // Update client list
             renderClientList();
             
-            // Show success message
-            document.getElementById('docMessage').textContent = `Documents saved successfully for ${identifier}!`;
-            document.getElementById('docMessage').classList.remove('hidden');
+            uploadStatus.classList.add('success');
+            uploadStatus.textContent = 'Client information saved successfully!';
             
-            // Clear the form for next client
             clearForm();
             
             setTimeout(() => {
-                document.getElementById('docMessage').classList.add('hidden');
+                uploadStatus.classList.add('hidden');
             }, 3000);
         }
     }
@@ -995,7 +1072,7 @@
                     <strong>${identifier}</strong>
                     <div class="text-sm text-gray-600">
                         Phone: ${client.phone || 'Not provided'} | 
-                        ${client.analysisFileName ? '📄 Has Report' : 'No report'} |
+                        ${client.pdfUrl ? '📄 Has PDF Report' : 'No report'} |
                         Saved: ${new Date(client.timestamp).toLocaleDateString()}
                     </div>
                 </div>
@@ -1017,8 +1094,6 @@
         document.getElementById('docClientPhone').value = client.phone || '';
         document.getElementById('docDemoUrl').value = client.demoUrl || '';
         document.getElementById('docBrandhubUrl').value = client.brandhubUrl || 'https://taniad2169.github.io/WebSwan-Brand-Hub/';
-        
-        // Note: We can't pre-fill the file input for security reasons
     }
 
     function copyClientLink(identifier) {
@@ -1028,7 +1103,7 @@
         
         navigator.clipboard.writeText(clientUrl)
             .then(() => {
-                alert(`Link copied to clipboard: ${clientUrl}`);
+                alert(`Client link copied to clipboard!\n\n${clientUrl}\n\nWhen the client opens this link, their PDF will automatically open.`);
                 
                 // Clear the form after copying the link
                 clearForm();
@@ -1047,27 +1122,6 @@
         }
     }
 
-    // PDF Viewer Functions
-    function showPdfViewer(pdfDataUri, fileName) {
-        const pdfViewer = document.getElementById('pdfViewer');
-        const pdfFrame = document.getElementById('pdfFrame');
-        const pdfTitle = document.getElementById('pdfTitle');
-        
-        pdfTitle.textContent = fileName || 'Your Analysis Document';
-        pdfFrame.src = pdfDataUri;
-        pdfViewer.style.display = 'block';
-        document.body.style.overflow = 'hidden';
-    }
-
-    function hidePdfViewer() {
-        const pdfViewer = document.getElementById('pdfViewer');
-        const pdfFrame = document.getElementById('pdfFrame');
-        
-        pdfViewer.style.display = 'none';
-        pdfFrame.src = '';
-        document.body.style.overflow = 'auto';
-    }
-
     function checkForClientDocument() {
         // Check if we have a client parameter in the URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -1076,43 +1130,16 @@
         if (clientIdentifier && documentData[clientIdentifier]) {
             const client = documentData[clientIdentifier];
             
-            // If this client has a PDF, show it immediately
-            if (client.analysisDataUri && client.analysisMimeType === 'application/pdf') {
-                showPdfViewer(client.analysisDataUri, client.analysisFileName);
-            }
-        }
-    }
-
-    function setupAnalysisButton() {
-        const analysisBtn = document.getElementById('analysisBtn');
-        const urlParams = new URLSearchParams(window.location.search);
-        const clientIdentifier = urlParams.get('client');
-        
-        if (clientIdentifier && documentData[clientIdentifier]) {
-            const client = documentData[clientIdentifier];
-            
-            if (client.analysisDataUri) {
-                // Set up the analysis button to show the PDF
-                analysisBtn.onclick = function() {
-                    if (client.analysisMimeType === 'application/pdf') {
-                        showPdfViewer(client.analysisDataUri, client.analysisFileName);
-                    } else {
-                        // For non-PDF files, create a download link
-                        const link = document.createElement('a');
-                        link.href = client.analysisDataUri;
-                        link.download = client.analysisFileName || 'analysis-document';
-                        link.click();
-                    }
-                };
+            // If this client has a PDF URL, open it immediately
+            if (client.pdfUrl) {
+                // Open the PDF in a new tab
+                window.open(client.pdfUrl, '_blank');
                 
-                // Update button text to show it's ready
+                // Also update the analysis button to point to this PDF
+                const analysisBtn = document.getElementById('analysisBtn');
+                analysisBtn.href = client.pdfUrl;
                 analysisBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i> View Your Analysis PDF';
             }
-        } else {
-            // Default behavior when no client-specific document
-            analysisBtn.onclick = function() {
-                window.open('https://taniad2169.github.io/WS-Analysis-Result/', '_blank');
-            };
         }
     }
 
@@ -1130,9 +1157,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Load data from storage
         loadFromStorage();
-        
-        // Set up the analysis button based on URL parameters
-        setupAnalysisButton();
         
         // CRM Search functionality
         document.getElementById('crmSearchBtn').addEventListener('click', searchClient);
@@ -1229,9 +1253,6 @@
             document.body.classList.remove('modal-open');
         });
         
-        // PDF Viewer close handler
-        document.getElementById('closePdf').addEventListener('click', hidePdfViewer);
-        
         // Close modal when clicking outside
         window.addEventListener('click', function(e) {
             if (e.target === document.getElementById('demoPromptModal')) {
@@ -1245,9 +1266,6 @@
             if (e.target === document.getElementById('loginModal')) {
                 document.getElementById('loginModal').style.display = 'none';
                 document.body.classList.remove('modal-open');
-            }
-            if (e.target === document.getElementById('pdfViewer')) {
-                hidePdfViewer();
             }
         });
     });
