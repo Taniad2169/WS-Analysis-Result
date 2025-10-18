@@ -1,4 +1,4 @@
-`<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -364,6 +364,41 @@
         .target-btn:hover {
             transform: scale(1.2);
         }
+
+        /* PDF Viewer Styles */
+        #pdfViewer {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 2000;
+        }
+        
+        .pdf-header {
+            background: #2F3746;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .pdf-content {
+            width: 100%;
+            height: calc(100% - 60px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .pdf-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
         
         @media (max-width: 768px) {
             .button-container {
@@ -388,6 +423,17 @@
 </head>
 <body>
 
+<!-- PDF Viewer (hidden by default) -->
+<div id="pdfViewer">
+    <div class="pdf-header">
+        <h2 id="pdfTitle">Your Analysis Document</h2>
+        <button id="closePdf" class="text-white text-2xl">&times;</button>
+    </div>
+    <div class="pdf-content">
+        <iframe id="pdfFrame" class="pdf-frame" src=""></iframe>
+    </div>
+</div>
+
 <!-- FRONT OFFICE -->
 <div id="frontOffice" class="container">
     <header class="header">
@@ -404,9 +450,9 @@
     </header>
 
     <div class="button-container">
-        <a href="https://taniad2169.github.io/WS-Analysis-Result/" id="analysisBtn" class="access-button analysis-btn" target="_blank">
+        <button id="analysisBtn" class="access-button analysis-btn">
             <i class="fas fa-chart-bar mr-2"></i> View Analysis Results
-        </a>
+        </button>
         
         <a href="https://taniad2169.github.io/WebSwan-Brand-Hub/" id="brandhubBtn" class="access-button brandhub-btn" target="_blank">
             <i class="fas fa-cube mr-2"></i> Interactive Brand Hub
@@ -773,7 +819,7 @@
         renderProjects();
         renderMonthlyPayments();
         renderClientList();
-        updateFrontOfficeLinks();
+        checkForClientDocument();
     }
 
     // CRM Search Functionality
@@ -1001,196 +1047,207 @@
         }
     }
 
-    function updateFrontOfficeLinks() {
-        // Get client identifier from URL parameters
+    // PDF Viewer Functions
+    function showPdfViewer(pdfDataUri, fileName) {
+        const pdfViewer = document.getElementById('pdfViewer');
+        const pdfFrame = document.getElementById('pdfFrame');
+        const pdfTitle = document.getElementById('pdfTitle');
+        
+        pdfTitle.textContent = fileName || 'Your Analysis Document';
+        pdfFrame.src = pdfDataUri;
+        pdfViewer.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hidePdfViewer() {
+        const pdfViewer = document.getElementById('pdfViewer');
+        const pdfFrame = document.getElementById('pdfFrame');
+        
+        pdfViewer.style.display = 'none';
+        pdfFrame.src = '';
+        document.body.style.overflow = 'auto';
+    }
+
+    function checkForClientDocument() {
+        // Check if we have a client parameter in the URL
         const urlParams = new URLSearchParams(window.location.search);
         const clientIdentifier = urlParams.get('client');
         
         if (clientIdentifier && documentData[clientIdentifier]) {
             const client = documentData[clientIdentifier];
             
-            // Update the analysis button
-            const analysisBtn = document.getElementById('analysisBtn');
-            
-            if (client.analysisDataUri) {
-                // For PDF files, we need to handle them differently
-                if (client.analysisMimeType === 'application/pdf') {
-                    // Create a blob URL for the PDF
-                    const byteString = atob(client.analysisDataUri.split(',')[1]);
-                    const mimeString = client.analysisDataUri.split(',')[0].split(':')[1].split(';')[0];
-                    const ab = new ArrayBuffer(byteString.length);
-                    const ia = new Uint8Array(ab);
-                    
-                    for (let i = 0; i < byteString.length; i++) {
-                        ia[i] = byteString.charCodeAt(i);
-                    }
-                    
-                    const blob = new Blob([ab], {type: mimeString});
-                    const blobUrl = URL.createObjectURL(blob);
-                    
-                    analysisBtn.href = blobUrl;
-                    analysisBtn.target = '_blank';
-                    analysisBtn.onclick = function() {
-                        // Open in new tab with proper PDF handling
-                        window.open(blobUrl, '_blank');
-                        return false;
-                    };
-                } else {
-                    // For other file types, use the data URI directly
-                    analysisBtn.href = client.analysisDataUri;
-                    analysisBtn.target = '_blank';
-                }
-            }
-            
-            // Update the brand hub button
-            const brandhubBtn = document.getElementById('brandhubBtn');
-            if (client.brandhubUrl) {
-                brandhubBtn.href = client.brandhubUrl;
-            }
-            
-            // Update the demo button
-            const demoBtn = document.getElementById('demoBtn');
-            if (client.demoUrl) {
-                demoBtn.onclick = function() {
-                    window.open(client.demoUrl, '_blank');
-                };
+            // If this client has a PDF, show it immediately
+            if (client.analysisDataUri && client.analysisMimeType === 'application/pdf') {
+                showPdfViewer(client.analysisDataUri, client.analysisFileName);
             }
         }
     }
 
-    // Modal Functions
-    function showModal(modalId) {
-        document.getElementById(modalId).style.display = 'block';
-        document.body.classList.add('modal-open');
+    function setupAnalysisButton() {
+        const analysisBtn = document.getElementById('analysisBtn');
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientIdentifier = urlParams.get('client');
+        
+        if (clientIdentifier && documentData[clientIdentifier]) {
+            const client = documentData[clientIdentifier];
+            
+            if (client.analysisDataUri) {
+                // Set up the analysis button to show the PDF
+                analysisBtn.onclick = function() {
+                    if (client.analysisMimeType === 'application/pdf') {
+                        showPdfViewer(client.analysisDataUri, client.analysisFileName);
+                    } else {
+                        // For non-PDF files, create a download link
+                        const link = document.createElement('a');
+                        link.href = client.analysisDataUri;
+                        link.download = client.analysisFileName || 'analysis-document';
+                        link.click();
+                    }
+                };
+                
+                // Update button text to show it's ready
+                analysisBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i> View Your Analysis PDF';
+            }
+        } else {
+            // Default behavior when no client-specific document
+            analysisBtn.onclick = function() {
+                window.open('https://taniad2169.github.io/WS-Analysis-Result/', '_blank');
+            };
+        }
     }
 
-    function hideModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-        document.body.classList.remove('modal-open');
-    }
+    // Make functions global
+    window.updateProject = updateProject;
+    window.deleteProject = deleteProject;
+    window.updateMonthlyPayment = updateMonthlyPayment;
+    window.deleteMonthlyPayment = deleteMonthlyPayment;
+    window.loadClient = loadClient;
+    window.copyClientLink = copyClientLink;
+    window.deleteClient = deleteClient;
+    window.searchClient = searchClient;
+    window.loadClientFromSearch = loadClientFromSearch;
 
-    // Event Listeners
     document.addEventListener('DOMContentLoaded', function() {
         // Load data from storage
         loadFromStorage();
         
-        // Back office elements
-        const targetBtn = document.getElementById('targetBtn');
-        const loginModal = document.getElementById('loginModal');
-        const backOffice = document.getElementById('backOffice');
-        const frontOffice = document.getElementById('frontOffice');
-        const passwordInput = document.getElementById('passwordInput');
-        const loginBtn = document.getElementById('loginBtn');
-        const closeLoginModal = document.getElementById('closeLoginModal');
-        const backToFrontBtn = document.getElementById('backToFrontBtn');
+        // Set up the analysis button based on URL parameters
+        setupAnalysisButton();
         
-        // Front office elements
-        const demoBtn = document.getElementById('demoBtn');
-        const demoRequestForm = document.getElementById('demoRequestForm');
-        const demoPromptModal = document.getElementById('demoPromptModal');
-        const closeDemoPromptModal = document.getElementById('closeDemoPromptModal');
-        const goToFormBtn = document.getElementById('goToFormBtn');
-        const successModal = document.getElementById('successModal');
-        const closeSuccessModal = document.getElementById('closeSuccessModal');
-        const modalOkBtn = document.getElementById('modalOkBtn');
+        // CRM Search functionality
+        document.getElementById('crmSearchBtn').addEventListener('click', searchClient);
         
-        // Back office buttons
-        const addProjectBtn = document.getElementById('addProjectBtn');
-        const addMonthlyPaymentBtn = document.getElementById('addMonthlyPaymentBtn');
-        const saveDocumentsBtn = document.getElementById('saveDocumentsBtn');
-        const crmSearchBtn = document.getElementById('crmSearchBtn');
-        
-        // Target button click - show login modal
-        targetBtn.addEventListener('click', () => {
-            showModal('loginModal');
-            passwordInput.focus();
-        });
-        
-        // Login button click
-        loginBtn.addEventListener('click', () => {
-            if (passwordInput.value === ADMIN_PASSWORD) {
-                frontOffice.style.display = 'none';
-                backOffice.style.display = 'block';
-                hideModal('loginModal');
-                passwordInput.value = '';
-            } else {
-                document.getElementById('loginError').classList.remove('hidden');
-            }
-        });
-        
-        // Close login modal
-        closeLoginModal.addEventListener('click', () => {
-            hideModal('loginModal');
-            document.getElementById('loginError').classList.add('hidden');
-            passwordInput.value = '';
-        });
-        
-        // Back to front office
-        backToFrontBtn.addEventListener('click', () => {
-            backOffice.style.display = 'none';
-            frontOffice.style.display = 'block';
-        });
-        
-        // Demo button click
-        demoBtn.addEventListener('click', () => {
-            showModal('demoPromptModal');
-        });
-        
-        // Close demo prompt modal
-        closeDemoPromptModal.addEventListener('click', () => {
-            hideModal('demoPromptModal');
-        });
-        
-        // Go to form button
-        goToFormBtn.addEventListener('click', () => {
-            hideModal('demoPromptModal');
-            document.getElementById('demoRequestForm').scrollIntoView({ behavior: 'smooth' });
-        });
-        
-        // Demo request form submission
-        demoRequestForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            // Get form data
-            const formData = new FormData(demoRequestForm);
-            const data = Object.fromEntries(formData);
-            
-            // In a real implementation, you would send this data to your server
-            console.log('Demo request submitted:', data);
-            
-            // Show success modal
-            showModal('successModal');
-            
-            // Reset form
-            demoRequestForm.reset();
-        });
-        
-        // Close success modal
-        closeSuccessModal.addEventListener('click', () => {
-            hideModal('successModal');
-        });
-        
-        modalOkBtn.addEventListener('click', () => {
-            hideModal('successModal');
-        });
-        
-        // Back office buttons
-        addProjectBtn.addEventListener('click', addProject);
-        addMonthlyPaymentBtn.addEventListener('click', addMonthlyPayment);
-        saveDocumentsBtn.addEventListener('click', saveDocuments);
-        crmSearchBtn.addEventListener('click', searchClient);
-        
-        // Allow Enter key in CRM search
-        document.getElementById('crmSearchInput').addEventListener('keypress', (e) => {
+        // Allow Enter key to trigger search
+        document.getElementById('crmSearchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 searchClient();
             }
         });
         
-        // Close modals when clicking outside
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                hideModal(e.target.id);
+        // Demo button opens modal instead of direct link
+        document.getElementById('demoBtn').addEventListener('click', function() {
+            document.getElementById('demoPromptModal').style.display = 'block';
+            document.body.classList.add('modal-open');
+        });
+        
+        // Go to Form button in modal
+        document.getElementById('goToFormBtn').addEventListener('click', function() {
+            document.getElementById('demoPromptModal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+            // Scroll to form
+            document.getElementById('demoRequestForm').scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        // Form submission handler
+        document.getElementById('demoRequestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // In a real implementation, you would send this data to your server
+            // For now, we'll just show a success message
+            
+            // Show success modal
+            document.getElementById('successModal').style.display = 'block';
+            document.body.classList.add('modal-open');
+            
+            // Reset form
+            document.getElementById('demoRequestForm').reset();
+        });
+        
+        // Target Button & Login
+        document.getElementById('targetBtn').addEventListener('click', function() {
+            document.getElementById('loginModal').style.display = 'block';
+            document.body.classList.add('modal-open');
+        });
+
+        document.getElementById('closeLoginModal').addEventListener('click', function() {
+            document.getElementById('loginModal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        });
+
+        document.getElementById('loginBtn').addEventListener('click', function() {
+            const password = document.getElementById('passwordInput').value;
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('frontOffice').style.display = 'none';
+                document.getElementById('backOffice').style.display = 'block';
+                document.body.classList.remove('modal-open');
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('loginError').classList.add('hidden');
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        });
+
+        // Back to Front
+        document.getElementById('backToFrontBtn').addEventListener('click', function() {
+            document.getElementById('backOffice').style.display = 'none';
+            document.getElementById('frontOffice').style.display = 'block';
+        });
+
+        // Document Management - FIXED
+        document.getElementById('saveDocumentsBtn').addEventListener('click', saveDocuments);
+
+        // Project Calculator
+        document.getElementById('addProjectBtn').addEventListener('click', addProject);
+
+        // Monthly Payments
+        document.getElementById('addMonthlyPaymentBtn').addEventListener('click', addMonthlyPayment);
+        
+        // Modal close handlers
+        document.getElementById('closeDemoPromptModal').addEventListener('click', function() {
+            document.getElementById('demoPromptModal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        });
+        
+        document.getElementById('closeSuccessModal').addEventListener('click', function() {
+            document.getElementById('successModal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        });
+        
+        document.getElementById('modalOkBtn').addEventListener('click', function() {
+            document.getElementById('successModal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        });
+        
+        // PDF Viewer close handler
+        document.getElementById('closePdf').addEventListener('click', hidePdfViewer);
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(e) {
+            if (e.target === document.getElementById('demoPromptModal')) {
+                document.getElementById('demoPromptModal').style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
+            if (e.target === document.getElementById('successModal')) {
+                document.getElementById('successModal').style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
+            if (e.target === document.getElementById('loginModal')) {
+                document.getElementById('loginModal').style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
+            if (e.target === document.getElementById('pdfViewer')) {
+                hidePdfViewer();
             }
         });
     });
