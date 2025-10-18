@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -928,12 +928,11 @@
     }
 
     function clearForm() {
-        // Clear all form fields EXCEPT the Brand Hub URL
+        // Clear all form fields except the brand hub URL
         document.getElementById('docLeadIdentifier').value = '';
         document.getElementById('docClientPhone').value = '';
         document.getElementById('docFileUpload').value = '';
         document.getElementById('docDemoUrl').value = '';
-        // Keep the Brand Hub URL as your permanent one
         document.getElementById('docBrandhubUrl').value = 'https://taniad2169.github.io/WebSwan-Brand-Hub/';
     }
 
@@ -941,229 +940,257 @@
         const container = document.getElementById('clientList');
         container.innerHTML = '';
         
-        const clients = Object.keys(documentData);
-        if (clients.length === 0) {
-            container.innerHTML = '<p class="text-gray-500">No clients saved yet.</p>';
-            return;
-        }
-        
-        clients.forEach(client => {
+        Object.keys(documentData).forEach(identifier => {
+            const client = documentData[identifier];
             const div = document.createElement('div');
             div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
             div.innerHTML = `
                 <div>
-                    <strong>${client}</strong>
+                    <strong>${identifier}</strong>
                     <div class="text-sm text-gray-600">
-                        ${documentData[client].phone ? `📞 ${documentData[client].phone}` : 'No phone'} | 
-                        ${documentData[client].analysisFileName ? '📄 Has Report' : 'No report'} |
-                        Saved: ${new Date(documentData[client].timestamp).toLocaleDateString()}
+                        Phone: ${client.phone || 'Not provided'} | 
+                        ${client.analysisFileName ? '📄 Has Report' : 'No report'} |
+                        Saved: ${new Date(client.timestamp).toLocaleDateString()}
                     </div>
                 </div>
-                <div class="flex gap-1">
-                    <button onclick="loadClient('${client}')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Load</button>
-                    <button onclick="copyClientLink('${client}')" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Copy Link</button>
-                    <button onclick="deleteClient('${client}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Delete</button>
+                <div>
+                    <button onclick="loadClient('${identifier}')" class="bg-green-500 text-white px-3 py-1 rounded mr-2">Load</button>
+                    <button onclick="copyClientLink('${identifier}')" class="bg-purple-500 text-white px-3 py-1 rounded mr-2">Copy Link</button>
+                    <button onclick="deleteClient('${identifier}')" class="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
                 </div>
             `;
             container.appendChild(div);
         });
     }
 
-    function loadClient(clientEmail) {
-        // Load button: Fills the form with client's saved information
-        document.getElementById('docLeadIdentifier').value = clientEmail;
+    function loadClient(identifier) {
+        const client = documentData[identifier];
+        if (!client) return;
         
-        const clientData = documentData[clientEmail];
-        if (clientData) {
-            document.getElementById('docClientPhone').value = clientData.phone || '';
-            document.getElementById('docDemoUrl').value = clientData.demoUrl || '';
-            // Brand Hub URL stays as your permanent one
-        }
+        document.getElementById('docLeadIdentifier').value = identifier;
+        document.getElementById('docClientPhone').value = client.phone || '';
+        document.getElementById('docDemoUrl').value = client.demoUrl || '';
+        document.getElementById('docBrandhubUrl').value = client.brandhubUrl || 'https://taniad2169.github.io/WebSwan-Brand-Hub/';
         
-        // Scroll to the top of the form
-        document.getElementById('docLeadIdentifier').scrollIntoView({ behavior: 'smooth' });
+        // Note: We can't pre-fill the file input for security reasons
     }
 
-    function copyClientLink(clientEmail) {
+    function copyClientLink(identifier) {
+        // Create a URL with the client identifier as a parameter
         const currentUrl = window.location.href.split('?')[0];
-        const clientUrl = `${currentUrl}?client=${encodeURIComponent(clientEmail)}`;
+        const clientUrl = `${currentUrl}?client=${encodeURIComponent(identifier)}`;
         
-        navigator.clipboard.writeText(clientUrl).then(() => {
-            alert(`Client link copied to clipboard!\n\n${clientUrl}\n\n✅ Form has been cleared for next client.`);
-            
-            // Clear the form after copying
-            clearForm();
-        });
+        navigator.clipboard.writeText(clientUrl)
+            .then(() => {
+                alert(`Link copied to clipboard: ${clientUrl}`);
+                
+                // Clear the form after copying the link
+                clearForm();
+            })
+            .catch(err => {
+                console.error('Failed to copy link: ', err);
+                alert('Failed to copy link. Please copy it manually: ' + clientUrl);
+            });
     }
 
-    function deleteClient(clientEmail) {
-        if (confirm(`Are you sure you want to delete ${clientEmail}?\n\nThis will permanently remove their analysis report and cannot be undone.`)) {
-            // Remove client from document data
-            delete documentData[clientEmail];
-            
-            // Save to storage
+    function deleteClient(identifier) {
+        if (confirm(`Are you sure you want to delete the client "${identifier}"?`)) {
+            delete documentData[identifier];
             saveToStorage();
-            
-            // Update client list
             renderClientList();
-            
-            // Clear search results if they were showing
-            document.getElementById('crmSearchResults').classList.add('hidden');
-            
-            // Show confirmation message
-            alert(`✅ ${clientEmail} has been permanently deleted.`);
-            
-            // Clear the form
-            clearForm();
         }
     }
 
     function updateFrontOfficeLinks() {
-        // Check if we have a specific client in the URL
+        // Get client identifier from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const clientEmail = urlParams.get('client');
+        const clientIdentifier = urlParams.get('client');
         
-        if (clientEmail && documentData[clientEmail]) {
-            // Update the front office button URLs based on saved document data for this client
-            const data = documentData[clientEmail];
+        if (clientIdentifier && documentData[clientIdentifier]) {
+            const client = documentData[clientIdentifier];
             
-            // Update Analysis Results button with the uploaded file
-            if (data.analysisDataUri) {
-                const analysisBtn = document.getElementById('analysisBtn');
-                analysisBtn.href = data.analysisDataUri;
-                analysisBtn.target = '_blank';
-                analysisBtn.download = data.analysisFileName || 'analysis-document';
-                analysisBtn.innerHTML = '<i class="fas fa-chart-bar mr-2"></i> View Your Analysis Results';
+            // Update the analysis button
+            const analysisBtn = document.getElementById('analysisBtn');
+            
+            if (client.analysisDataUri) {
+                // For PDF files, we need to handle them differently
+                if (client.analysisMimeType === 'application/pdf') {
+                    // Create a blob URL for the PDF
+                    const byteString = atob(client.analysisDataUri.split(',')[1]);
+                    const mimeString = client.analysisDataUri.split(',')[0].split(':')[1].split(';')[0];
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    
+                    for (let i = 0; i < byteString.length; i++) {
+                        ia[i] = byteString.charCodeAt(i);
+                    }
+                    
+                    const blob = new Blob([ab], {type: mimeString});
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    analysisBtn.href = blobUrl;
+                    analysisBtn.target = '_blank';
+                    analysisBtn.onclick = function() {
+                        // Open in new tab with proper PDF handling
+                        window.open(blobUrl, '_blank');
+                        return false;
+                    };
+                } else {
+                    // For other file types, use the data URI directly
+                    analysisBtn.href = client.analysisDataUri;
+                    analysisBtn.target = '_blank';
+                }
+            }
+            
+            // Update the brand hub button
+            const brandhubBtn = document.getElementById('brandhubBtn');
+            if (client.brandhubUrl) {
+                brandhubBtn.href = client.brandhubUrl;
+            }
+            
+            // Update the demo button
+            const demoBtn = document.getElementById('demoBtn');
+            if (client.demoUrl) {
+                demoBtn.onclick = function() {
+                    window.open(client.demoUrl, '_blank');
+                };
             }
         }
     }
 
-    // Make functions global
-    window.updateProject = updateProject;
-    window.deleteProject = deleteProject;
-    window.updateMonthlyPayment = updateMonthlyPayment;
-    window.deleteMonthlyPayment = deleteMonthlyPayment;
-    window.loadClient = loadClient;
-    window.copyClientLink = copyClientLink;
-    window.deleteClient = deleteClient;
-    window.searchClient = searchClient;
-    window.loadClientFromSearch = loadClientFromSearch;
+    // Modal Functions
+    function showModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+        document.body.classList.add('modal-open');
+    }
 
+    function hideModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+        document.body.classList.remove('modal-open');
+    }
+
+    // Event Listeners
     document.addEventListener('DOMContentLoaded', function() {
         // Load data from storage
         loadFromStorage();
         
-        // Set permanent Brand Hub URL
-        document.getElementById('brandhubBtn').href = "https://taniad2169.github.io/WebSwan-Brand-Hub/";
+        // Back office elements
+        const targetBtn = document.getElementById('targetBtn');
+        const loginModal = document.getElementById('loginModal');
+        const backOffice = document.getElementById('backOffice');
+        const frontOffice = document.getElementById('frontOffice');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const closeLoginModal = document.getElementById('closeLoginModal');
+        const backToFrontBtn = document.getElementById('backToFrontBtn');
         
-        // CRM Search functionality
-        document.getElementById('crmSearchBtn').addEventListener('click', searchClient);
+        // Front office elements
+        const demoBtn = document.getElementById('demoBtn');
+        const demoRequestForm = document.getElementById('demoRequestForm');
+        const demoPromptModal = document.getElementById('demoPromptModal');
+        const closeDemoPromptModal = document.getElementById('closeDemoPromptModal');
+        const goToFormBtn = document.getElementById('goToFormBtn');
+        const successModal = document.getElementById('successModal');
+        const closeSuccessModal = document.getElementById('closeSuccessModal');
+        const modalOkBtn = document.getElementById('modalOkBtn');
         
-        // Allow Enter key to trigger search
-        document.getElementById('crmSearchInput').addEventListener('keypress', function(e) {
+        // Back office buttons
+        const addProjectBtn = document.getElementById('addProjectBtn');
+        const addMonthlyPaymentBtn = document.getElementById('addMonthlyPaymentBtn');
+        const saveDocumentsBtn = document.getElementById('saveDocumentsBtn');
+        const crmSearchBtn = document.getElementById('crmSearchBtn');
+        
+        // Target button click - show login modal
+        targetBtn.addEventListener('click', () => {
+            showModal('loginModal');
+            passwordInput.focus();
+        });
+        
+        // Login button click
+        loginBtn.addEventListener('click', () => {
+            if (passwordInput.value === ADMIN_PASSWORD) {
+                frontOffice.style.display = 'none';
+                backOffice.style.display = 'block';
+                hideModal('loginModal');
+                passwordInput.value = '';
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        });
+        
+        // Close login modal
+        closeLoginModal.addEventListener('click', () => {
+            hideModal('loginModal');
+            document.getElementById('loginError').classList.add('hidden');
+            passwordInput.value = '';
+        });
+        
+        // Back to front office
+        backToFrontBtn.addEventListener('click', () => {
+            backOffice.style.display = 'none';
+            frontOffice.style.display = 'block';
+        });
+        
+        // Demo button click
+        demoBtn.addEventListener('click', () => {
+            showModal('demoPromptModal');
+        });
+        
+        // Close demo prompt modal
+        closeDemoPromptModal.addEventListener('click', () => {
+            hideModal('demoPromptModal');
+        });
+        
+        // Go to form button
+        goToFormBtn.addEventListener('click', () => {
+            hideModal('demoPromptModal');
+            document.getElementById('demoRequestForm').scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        // Demo request form submission
+        demoRequestForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(demoRequestForm);
+            const data = Object.fromEntries(formData);
+            
+            // In a real implementation, you would send this data to your server
+            console.log('Demo request submitted:', data);
+            
+            // Show success modal
+            showModal('successModal');
+            
+            // Reset form
+            demoRequestForm.reset();
+        });
+        
+        // Close success modal
+        closeSuccessModal.addEventListener('click', () => {
+            hideModal('successModal');
+        });
+        
+        modalOkBtn.addEventListener('click', () => {
+            hideModal('successModal');
+        });
+        
+        // Back office buttons
+        addProjectBtn.addEventListener('click', addProject);
+        addMonthlyPaymentBtn.addEventListener('click', addMonthlyPayment);
+        saveDocumentsBtn.addEventListener('click', saveDocuments);
+        crmSearchBtn.addEventListener('click', searchClient);
+        
+        // Allow Enter key in CRM search
+        document.getElementById('crmSearchInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 searchClient();
             }
         });
         
-        // Demo button opens modal instead of direct link
-        document.getElementById('demoBtn').addEventListener('click', function() {
-            document.getElementById('demoPromptModal').style.display = 'block';
-            document.body.classList.add('modal-open');
-        });
-        
-        // Go to Form button in modal
-        document.getElementById('goToFormBtn').addEventListener('click', function() {
-            document.getElementById('demoPromptModal').style.display = 'none';
-            document.body.classList.remove('modal-open');
-            // Scroll to form
-            document.getElementById('demoRequestForm').scrollIntoView({ behavior: 'smooth' });
-        });
-        
-        // Form submission handler
-        document.getElementById('demoRequestForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // In a real implementation, you would send this data to your server
-            // For now, we'll just show a success message
-            
-            // Show success modal
-            document.getElementById('successModal').style.display = 'block';
-            document.body.classList.add('modal-open');
-            
-            // Reset form
-            document.getElementById('demoRequestForm').reset();
-        });
-        
-        // Target Button & Login
-        document.getElementById('targetBtn').addEventListener('click', function() {
-            document.getElementById('loginModal').style.display = 'block';
-            document.body.classList.add('modal-open');
-        });
-
-        document.getElementById('closeLoginModal').addEventListener('click', function() {
-            document.getElementById('loginModal').style.display = 'none';
-            document.body.classList.remove('modal-open');
-        });
-
-        document.getElementById('loginBtn').addEventListener('click', function() {
-            const password = document.getElementById('passwordInput').value;
-            if (password === ADMIN_PASSWORD) {
-                document.getElementById('loginModal').style.display = 'none';
-                document.getElementById('frontOffice').style.display = 'none';
-                document.getElementById('backOffice').style.display = 'block';
-                document.body.classList.remove('modal-open');
-                document.getElementById('passwordInput').value = '';
-                document.getElementById('loginError').classList.add('hidden');
-            } else {
-                document.getElementById('loginError').classList.remove('hidden');
-            }
-        });
-
-        // Back to Front
-        document.getElementById('backToFrontBtn').addEventListener('click', function() {
-            document.getElementById('backOffice').style.display = 'none';
-            document.getElementById('frontOffice').style.display = 'block';
-        });
-
-        // Document Management - FIXED
-        document.getElementById('saveDocumentsBtn').addEventListener('click', saveDocuments);
-
-        // Project Calculator
-        document.getElementById('addProjectBtn').addEventListener('click', addProject);
-
-        // Monthly Payments
-        document.getElementById('addMonthlyPaymentBtn').addEventListener('click', addMonthlyPayment);
-        
-        // Modal close handlers
-        document.getElementById('closeDemoPromptModal').addEventListener('click', function() {
-            document.getElementById('demoPromptModal').style.display = 'none';
-            document.body.classList.remove('modal-open');
-        });
-        
-        document.getElementById('closeSuccessModal').addEventListener('click', function() {
-            document.getElementById('successModal').style.display = 'none';
-            document.body.classList.remove('modal-open');
-        });
-        
-        document.getElementById('modalOkBtn').addEventListener('click', function() {
-            document.getElementById('successModal').style.display = 'none';
-            document.body.classList.remove('modal-open');
-        });
-        
-        // Close modal when clicking outside
-        window.addEventListener('click', function(e) {
-            if (e.target === document.getElementById('demoPromptModal')) {
-                document.getElementById('demoPromptModal').style.display = 'none';
-                document.body.classList.remove('modal-open');
-            }
-            if (e.target === document.getElementById('successModal')) {
-                document.getElementById('successModal').style.display = 'none';
-                document.body.classList.remove('modal-open');
-            }
-            if (e.target === document.getElementById('loginModal')) {
-                document.getElementById('loginModal').style.display = 'none';
-                document.body.classList.remove('modal-open');
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                hideModal(e.target.id);
             }
         });
     });
