@@ -6,13 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         html {
             height: 100%;
@@ -411,7 +407,7 @@
     </header>
 
     <div class="button-container">
-        <a href="https://taniad2169.github.io/WS-Analysis-Result/" id="analysisBtn" class="access-button analysis-btn" target="_blank">
+        <a href="#" id="analysisBtn" class="access-button analysis-btn">
             <i class="fas fa-chart-bar mr-2"></i> View Analysis Results
         </a>
         
@@ -607,10 +603,9 @@
     <div class="modal-content">
         <span class="close-btn" id="closeLoginModal">&times;</span>
         <h2 class="text-2xl font-bold mb-4">Back Office Login</h2>
-        <input type="email" id="emailInput" placeholder="Your Email" class="w-full p-3 border rounded-md mb-3">
-        <input type="password" id="passwordInput" placeholder="Your Password" class="w-full p-3 border rounded-md mb-4">
+        <input type="password" id="passwordInput" placeholder="Enter Password" class="w-full p-3 border rounded-md mb-4">
         <button id="loginBtn" class="submit-btn">Login</button>
-        <p id="loginError" class="text-red-500 text-center mt-3 hidden">Login failed. Check your credentials.</p>
+        <p id="loginError" class="text-red-500 text-center mt-3 hidden">Incorrect password</p>
     </div>
 </div>
 
@@ -641,44 +636,34 @@
 </div>
 
 <script>
-    // ==================== FIREBASE CONFIGURATION ====================
+    // Firebase Configuration
     const firebaseConfig = {
-        apiKey: "AIzaSyBarSNp6ml5UeYAPylj4QEOmmyU4GFuJuU",
-        authDomain: "crmleads-3f1a7.firebaseapp.com",
-        projectId: "crmleads-3f1a7",
-        storageBucket: "crmleads-3f1a7.firebasestorage.app",
-        messagingSenderId: "317614128849",
-        appId: "1:317614128849:web:86be5c842c0f0e84768ff0",
-        measurementId: "G-MMJK40SY3N"
+        apiKey: "AIzaSyAqhqUzWqpS7YunkODJU_udTBG3pjsJegQ",
+        authDomain: "webswan-marketing.firebaseapp.com",
+        projectId: "webswan-marketing",
+        storageBucket: "webswan-marketing.firebasestorage.app",
+        messagingSenderId: "556357112107",
+        appId: "1:556357112107:web:6c8bd74e3a7caf9a2d756e",
+        measurementId: "G-M7NDR4DTEW"
     };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const storage = firebase.storage();
-    const auth = firebase.auth();
-
-    // ==================== SECURE AUTHENTICATION ====================
-    const ADMIN_EMAILS = ['thewebswann@gmail.com'];
-
-    async function secureLogin(email, password) {
-        try {
-            const userCredential = await auth.signInWithEmailAndPassword(email, password);
-            
-            // Extra security: Verify it's an admin email
-            if (ADMIN_EMAILS.includes(userCredential.user.email)) {
-                return userCredential.user;
-            } else {
-                await auth.signOut();
-                return null;
-            }
-        } catch (error) {
-            console.error("Secure login error:", error);
-            return null;
+    // Initialize Firebase Firestore only
+    let db = null;
+    try {
+        if (firebase.apps.length === 0) {
+            firebase.initializeApp(firebaseConfig);
         }
+        db = firebase.firestore();
+        console.log("🔥 Firestore initialized successfully!");
+    } catch (error) {
+        console.error("❌ Firebase initialization error:", error);
     }
 
-    // ==================== YOUR EXISTING VARIABLES ====================
+    const ADMIN_PASSWORD = '333';
+    let targetClickCount = 0;
+    let targetClickTimer = null;
+    const BASE_URL = 'https://taniad2169.github.io/WS-Analysis-Result/';
+
     const PROJECT_TYPES = [
         'Standard Web Design',
         'Premium Web Design',
@@ -702,9 +687,10 @@
 
     let projects = [];
     let monthlyPayments = [];
+    let documentData = {};
 
-    // ==================== SECURE DOCUMENT MANAGEMENT ====================
-    async function saveDocumentsToFirebase() {
+    // Enhanced saveDocuments function - localStorage approach
+    async function saveDocuments() {
         const identifier = document.getElementById('docLeadIdentifier').value.trim();
         if (!identifier) {
             alert('Please enter a Client Email');
@@ -714,57 +700,255 @@
         const clientPhone = document.getElementById('docClientPhone').value.trim();
         const fileInput = document.getElementById('docFileUpload');
         const demoUrl = document.getElementById('docDemoUrl').value.trim();
-        const brandhubUrl = document.getElementById('docBrandhubUrl').value.trim();
 
         try {
+            // Show loading state
+            const saveBtn = document.getElementById('saveDocumentsBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            // Prepare client data
             const clientData = {
+                email: identifier,
                 phone: clientPhone,
                 demoUrl: demoUrl,
                 brandhubUrl: "https://taniad2169.github.io/WebSwan-Brand-Hub/",
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: new Date().toISOString()
             };
 
-            // Handle file upload to Firebase Storage
+            // Handle file upload - Use localStorage for files
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 
-                // Validate file
-                if (file.size > 20 * 1024 * 1024) {
-                    alert('File too large (max 20MB). Please compress your PDF.');
+                // Check file size (3MB limit for localStorage)
+                if (file.size > 3 * 1024 * 1024) {
+                    alert('⚠️ File too large (max 3MB). Please compress your PDF or use a smaller file.');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Documents for This Client';
                     return;
                 }
-
-                // Upload to Firebase Storage
-                const storageRef = storage.ref(`client-docs/${identifier}/${file.name}`);
-                const snapshot = await storageRef.put(file);
-                const downloadUrl = await snapshot.ref.getDownloadURL();
                 
-                clientData.analysisFileUrl = downloadUrl;
+                // Convert to Data URL for localStorage
+                const dataUrl = await fileToDataURL(file);
+                clientData.analysisDataUri = dataUrl;
                 clientData.analysisFileName = file.name;
-                clientData.analysisFileSize = file.size;
+                clientData.analysisMimeType = file.type;
+                clientData.storageType = 'localStorage';
+                
+                console.log('✅ PDF converted to Data URL, size:', dataUrl.length);
             }
 
-            // Save to Firestore
-            await db.collection('clients').doc(identifier).set(clientData, { merge: true });
+            // Save to both Firestore and localStorage for redundancy
+            if (db) {
+                try {
+                    await db.collection('clients').doc(identifier).set({
+                        ...clientData,
+                        firestoreTimestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    console.log('✅ Client data saved to Firestore');
+                } catch (firestoreError) {
+                    console.warn('Firestore save failed, using localStorage only:', firestoreError);
+                }
+            }
 
-            // Show success
-            document.getElementById('docMessage').textContent = `✅ Documents securely saved for ${identifier}!`;
+            // Always save to localStorage
+            documentData[identifier] = clientData;
+            localStorage.setItem('webswan_documents', JSON.stringify(documentData));
+            
+            // Show success message
+            document.getElementById('docMessage').textContent = `✅ Client data saved successfully for ${identifier}!`;
             document.getElementById('docMessage').classList.remove('hidden');
             
+            // Clear form and refresh
             clearForm();
-            loadClientsFromFirebase();
-
+            await loadClientsFromStorage();
+            
             setTimeout(() => {
                 document.getElementById('docMessage').classList.add('hidden');
-            }, 3000);
-
+            }, 5000);
+            
         } catch (error) {
-            console.error("Save error:", error);
-            alert('Error saving documents. Please try again.');
+            console.error('❌ Error saving documents:', error);
+            alert('❌ Error saving data: ' + error.message);
+        } finally {
+            // Reset button state
+            const saveBtn = document.getElementById('saveDocumentsBtn');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Documents for This Client';
         }
     }
 
+    // Helper function to convert file to Data URL
+    function fileToDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                resolve(e.target.result);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Enhanced load function
+    async function loadClientsFromStorage() {
+        try {
+            // Try to load from Firestore first
+            if (db) {
+                const snapshot = await db.collection('clients').orderBy('firestoreTimestamp', 'desc').get();
+                const firebaseData = {};
+                
+                snapshot.forEach(doc => {
+                    firebaseData[doc.id] = doc.data();
+                });
+                
+                // Merge with localStorage data (localStorage takes priority for files)
+                const localData = JSON.parse(localStorage.getItem('webswan_documents') || '{}');
+                documentData = { ...firebaseData, ...localData };
+                
+                console.log(`✅ Loaded ${snapshot.size} clients from Firestore`);
+            } else {
+                // Fallback to localStorage only
+                const localData = localStorage.getItem('webswan_documents');
+                documentData = localData ? JSON.parse(localData) : {};
+                console.log('✅ Loaded clients from localStorage');
+            }
+            
+            renderClientList();
+            updateFrontOfficeLinks();
+        } catch (error) {
+            console.error('Error loading clients:', error);
+            // Final fallback to localStorage
+            const localData = localStorage.getItem('webswan_documents');
+            documentData = localData ? JSON.parse(localData) : {};
+            renderClientList();
+            updateFrontOfficeLinks();
+        }
+    }
+
+    // Load specific client data
+    async function loadClient(clientEmail) {
+        try {
+            if (db) {
+                const doc = await db.collection('clients').doc(clientEmail).get();
+                if (doc.exists) {
+                    const clientData = doc.data();
+                    document.getElementById('docLeadIdentifier').value = clientEmail;
+                    document.getElementById('docClientPhone').value = clientData.phone || '';
+                    document.getElementById('docDemoUrl').value = clientData.demoUrl || '';
+                    
+                    // Scroll to form
+                    document.getElementById('docLeadIdentifier').scrollIntoView({ behavior: 'smooth' });
+                    return;
+                }
+            }
+            
+            // Fallback to localStorage
+            if (documentData[clientEmail]) {
+                const clientData = documentData[clientEmail];
+                document.getElementById('docLeadIdentifier').value = clientEmail;
+                document.getElementById('docClientPhone').value = clientData.phone || '';
+                document.getElementById('docDemoUrl').value = clientData.demoUrl || '';
+                
+                document.getElementById('docLeadIdentifier').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                alert('Client not found in database');
+            }
+        } catch (error) {
+            console.error('Error loading client:', error);
+            alert('Error loading client data');
+        }
+    }
+
+    // Delete client from storage
+    async function deleteClient(clientEmail) {
+        if (confirm(`Are you sure you want to permanently delete ${clientEmail}? This cannot be undone!`)) {
+            try {
+                // Delete from Firestore
+                if (db) {
+                    await db.collection('clients').doc(clientEmail).delete();
+                }
+                
+                // Delete from localStorage
+                delete documentData[clientEmail];
+                localStorage.setItem('webswan_documents', JSON.stringify(documentData));
+                
+                await loadClientsFromStorage();
+                clearForm();
+                
+                alert(`✅ ${clientEmail} has been permanently deleted.`);
+            } catch (error) {
+                console.error('Error deleting client:', error);
+                alert('❌ Error deleting client: ' + error.message);
+            }
+        }
+    }
+
+    // Copy client link function
+    function copyClientLink(clientEmail) {
+        const clientUrl = `${BASE_URL}?client=${encodeURIComponent(clientEmail)}`;
+        
+        navigator.clipboard.writeText(clientUrl).then(() => {
+            alert(`✅ Client link copied to clipboard!\n\n${clientUrl}\n\nShare this link with your client. When they open it, they can click "View Analysis Results" to see their PDF report.\n\n✅ Form has been cleared for next client.`);
+            
+            // Clear the form after copying
+            clearForm();
+        });
+    }
+
+    // Updated front office links
+    function updateFrontOfficeLinks() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientEmail = urlParams.get('client');
+        
+        if (clientEmail && documentData[clientEmail]) {
+            const data = documentData[clientEmail];
+            const analysisBtn = document.getElementById('analysisBtn');
+            
+            // Handle PDF display - localStorage Data URL
+            if (data.analysisDataUri) {
+                analysisBtn.href = data.analysisDataUri;
+                analysisBtn.target = '_blank';
+                analysisBtn.download = data.analysisFileName || 'website-analysis.pdf';
+                analysisBtn.style.opacity = '1';
+                console.log('✅ Analysis button linked to PDF');
+            } 
+            // Handle external URL (Google Drive, etc.)
+            else if (data.analysisFileURL) {
+                analysisBtn.href = data.analysisFileURL;
+                analysisBtn.target = '_blank';
+                analysisBtn.style.opacity = '1';
+            } 
+            // No PDF available
+            else {
+                analysisBtn.onclick = function(e) {
+                    e.preventDefault();
+                    alert('No analysis document found for this client. Please contact WebSwan.');
+                };
+                analysisBtn.style.opacity = '0.7';
+            }
+            
+            // Update Demo button
+            const demoBtn = document.getElementById('demoBtn');
+            if (data.demoUrl) {
+                demoBtn.onclick = function() {
+                    window.open(data.demoUrl, '_blank');
+                };
+                demoBtn.style.opacity = '1';
+            } else {
+                demoBtn.style.opacity = '0.7';
+            }
+        } else {
+            // No client specified
+            const analysisBtn = document.getElementById('analysisBtn');
+            analysisBtn.onclick = function(e) {
+                e.preventDefault();
+                alert('No analysis document found. Please contact WebSwan for your personalized analysis link.');
+            };
+        }
+    }
+
+    // Clear form function
     function clearForm() {
         document.getElementById('docLeadIdentifier').value = '';
         document.getElementById('docClientPhone').value = '';
@@ -773,209 +957,41 @@
         document.getElementById('docBrandhubUrl').value = 'https://taniad2169.github.io/WebSwan-Brand-Hub/';
     }
 
-    // ==================== SECURE CLIENT MANAGEMENT ====================
-    async function loadClientsFromFirebase() {
-        try {
-            const snapshot = await db.collection('clients')
-                .orderBy('timestamp', 'desc')
-                .get();
-            
-            const container = document.getElementById('clientList');
-            container.innerHTML = '';
-            
-            if (snapshot.empty) {
-                container.innerHTML = '<p class="text-gray-500">No clients saved yet.</p>';
-                return;
-            }
-            
-            snapshot.forEach(doc => {
-                const clientData = doc.data();
-                const div = document.createElement('div');
-                div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
-                div.innerHTML = `
-                    <div>
-                        <strong>${doc.id}</strong>
-                        <div class="text-sm text-gray-600">
-                            ${clientData.phone ? `📞 ${clientData.phone}` : 'No phone'} | 
-                            ${clientData.analysisFileName ? '📄 Has Report' : 'No report'} |
-                            Saved: ${clientData.timestamp?.toDate().toLocaleDateString() || 'Recently'}
-                        </div>
-                    </div>
-                    <div class="flex gap-1">
-                        <button onclick="loadClientFromFirebase('${doc.id}')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Load</button>
-                        <button onclick="copySecureClientLink('${doc.id}')" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Copy Link</button>
-                        <button onclick="deleteClientFromFirebase('${doc.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Delete</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        } catch (error) {
-            console.error("Load clients error:", error);
-        }
-    }
-
-    async function loadClientFromFirebase(clientEmail) {
-        try {
-            const doc = await db.collection('clients').doc(clientEmail).get();
-            if (doc.exists) {
-                const clientData = doc.data();
-                document.getElementById('docLeadIdentifier').value = clientEmail;
-                document.getElementById('docClientPhone').value = clientData.phone || '';
-                document.getElementById('docDemoUrl').value = clientData.demoUrl || '';
-                document.getElementById('docBrandhubUrl').value = clientData.brandhubUrl || 'https://taniad2169.github.io/WebSwan-Brand-Hub/';
-                
-                document.getElementById('docLeadIdentifier').scrollIntoView({ behavior: 'smooth' });
-            }
-        } catch (error) {
-            console.error("Load client error:", error);
-        }
-    }
-
-    function copySecureClientLink(clientEmail) {
-        const currentUrl = window.location.href.split('?')[0];
-        const clientUrl = `${currentUrl}?client=${encodeURIComponent(clientEmail)}`;
+    // Render client list function
+    function renderClientList() {
+        const container = document.getElementById('clientList');
+        container.innerHTML = '';
         
-        navigator.clipboard.writeText(clientUrl).then(() => {
-            alert(`✅ Secure client link copied!\n\n${clientUrl}\n\nPDF will load securely from our protected server.`);
-            clearForm();
-        });
-    }
-
-    async function deleteClientFromFirebase(clientEmail) {
-        if (confirm(`Permanently delete ${clientEmail}? This cannot be undone.`)) {
-            try {
-                // Delete from Firestore
-                await db.collection('clients').doc(clientEmail).delete();
-                
-                // Delete associated files from Storage
-                const storageRef = storage.ref(`client-docs/${clientEmail}`);
-                const files = await storageRef.listAll();
-                const deletePromises = files.items.map(item => item.delete());
-                await Promise.all(deletePromises);
-                
-                alert(`✅ ${clientEmail} permanently deleted.`);
-                loadClientsFromFirebase();
-                clearForm();
-            } catch (error) {
-                console.error("Delete error:", error);
-                alert('Error deleting client. Please try again.');
-            }
-        }
-    }
-
-    // ==================== SECURE CRM SEARCH ====================
-    async function searchClientInFirebase() {
-        const searchTerm = document.getElementById('crmSearchInput').value.trim().toLowerCase();
-        
-        if (!searchTerm) {
-            alert('Please enter a phone number or email to search');
-            return;
-        }
-
-        try {
-            // Search by email (document ID)
-            const emailSnapshot = await db.collection('clients')
-                .where(firebase.firestore.FieldPath.documentId(), '>=', searchTerm)
-                .where(firebase.firestore.FieldPath.documentId(), '<=', searchTerm + '\uf8ff')
-                .get();
-
-            // Search by phone number
-            const phoneSnapshot = await db.collection('clients')
-                .where('phone', '>=', searchTerm)
-                .where('phone', '<=', searchTerm + '\uf8ff')
-                .get();
-
-            const results = [];
-            
-            emailSnapshot.forEach(doc => {
-                results.push({ email: doc.id, data: doc.data() });
-            });
-            
-            phoneSnapshot.forEach(doc => {
-                // Avoid duplicates
-                if (!results.find(r => r.email === doc.id)) {
-                    results.push({ email: doc.id, data: doc.data() });
-                }
-            });
-
-            displaySearchResults(results);
-        } catch (error) {
-            console.error("Search error:", error);
-            alert('Error searching clients. Please try again.');
-        }
-    }
-
-    function displaySearchResults(results) {
-        const resultsContainer = document.getElementById('crmSearchResults');
-        const noResultsContainer = document.getElementById('crmNoResults');
-        const resultsList = document.getElementById('crmResultsList');
-        
-        resultsList.innerHTML = '';
-        
-        if (results.length === 0) {
-            resultsContainer.classList.add('hidden');
-            noResultsContainer.classList.remove('hidden');
+        const clients = Object.keys(documentData);
+        if (clients.length === 0) {
+            container.innerHTML = '<p class="text-gray-500">No clients saved yet.</p>';
             return;
         }
         
-        noResultsContainer.classList.add('hidden');
-        resultsContainer.classList.remove('hidden');
-        
-        results.forEach(result => {
+        clients.forEach(client => {
+            const clientData = documentData[client];
             const div = document.createElement('div');
-            div.className = 'flex justify-between items-center p-3 bg-blue-50 rounded-lg';
+            div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
             div.innerHTML = `
                 <div>
-                    <strong>${result.email}</strong>
+                    <strong>${client}</strong>
                     <div class="text-sm text-gray-600">
-                        Phone: ${result.data.phone || 'Not provided'} | 
-                        ${result.data.analysisFileName ? '📄 Has Report' : 'No report'} |
-                        Saved: ${result.data.timestamp?.toDate().toLocaleDateString() || 'Recently'}
+                        ${clientData.phone ? `📞 ${clientData.phone}` : 'No phone'} | 
+                        ${clientData.analysisDataUri ? '📄 Has Report' : 'No report'} |
+                        Saved: ${clientData.timestamp ? new Date(clientData.timestamp).toLocaleDateString() : 'Unknown'}
                     </div>
                 </div>
-                <div>
-                    <button onclick="loadClientFromSearch('${result.email}')" class="bg-green-500 text-white px-3 py-1 rounded mr-2">Load</button>
-                    <button onclick="copySecureClientLink('${result.email}')" class="bg-purple-500 text-white px-3 py-1 rounded mr-2">Copy Link</button>
-                    <button onclick="deleteClientFromFirebase('${result.email}')" class="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
+                <div class="flex gap-1">
+                    <button onclick="loadClient('${client}')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Load</button>
+                    <button onclick="copyClientLink('${client}')" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Copy Link</button>
+                    <button onclick="deleteClient('${client}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Delete</button>
                 </div>
             `;
-            resultsList.appendChild(div);
+            container.appendChild(div);
         });
     }
 
-    function loadClientFromSearch(clientEmail) {
-        loadClientFromFirebase(clientEmail);
-        document.getElementById('docLeadIdentifier').scrollIntoView({ behavior: 'smooth' });
-        document.getElementById('crmSearchResults').classList.add('hidden');
-        document.getElementById('crmSearchInput').value = '';
-    }
-
-    // ==================== FRONT OFFICE SECURE LOADING ====================
-    async function loadClientForFrontOffice() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const clientEmail = urlParams.get('client');
-        
-        if (clientEmail) {
-            try {
-                const doc = await db.collection('clients').doc(clientEmail).get();
-                if (doc.exists) {
-                    const clientData = doc.data();
-                    
-                    // Update analysis button to open secure PDF
-                    if (clientData.analysisFileUrl) {
-                        const analysisBtn = document.getElementById('analysisBtn');
-                        analysisBtn.href = clientData.analysisFileUrl;
-                        analysisBtn.target = '_blank';
-                        analysisBtn.innerHTML = '<i class="fas fa-chart-bar mr-2"></i> View Your Analysis Results';
-                    }
-                }
-            } catch (error) {
-                console.error("Front office load error:", error);
-            }
-        }
-    }
-
-    // ==================== YOUR EXISTING CALCULATOR FUNCTIONS ====================
+    // Project Calculator Functions (unchanged)
     function renderProjects() {
         const container = document.getElementById('projectsList');
         container.innerHTML = '';
@@ -1000,21 +1016,22 @@
     function addProject() {
         projects.push({ type: PROJECT_TYPES[0], price: 0, description: '' });
         renderProjects();
-        saveToFirebase();
+        saveToStorage();
     }
 
     function updateProject(index, field, value) {
         projects[index][field] = field === 'price' ? parseFloat(value) || 0 : value;
         calculateTotals();
-        saveToFirebase();
+        saveToStorage();
     }
 
     function deleteProject(index) {
         projects.splice(index, 1);
         renderProjects();
-        saveToFirebase();
+        saveToStorage();
     }
 
+    // Monthly Payments Functions (unchanged)
     function renderMonthlyPayments() {
         const container = document.getElementById('monthlyPaymentsList');
         container.innerHTML = '';
@@ -1041,19 +1058,19 @@
     function addMonthlyPayment() {
         monthlyPayments.push({ service: MONTHLY_SERVICES[0], amount: 0, anniversary: '' });
         renderMonthlyPayments();
-        saveToFirebase();
+        saveToStorage();
     }
 
     function updateMonthlyPayment(index, field, value) {
         monthlyPayments[index][field] = field === 'amount' ? parseFloat(value) || 0 : value;
         calculateTotals();
-        saveToFirebase();
+        saveToStorage();
     }
 
     function deleteMonthlyPayment(index) {
         monthlyPayments.splice(index, 1);
         renderMonthlyPayments();
-        saveToFirebase();
+        saveToStorage();
     }
 
     function calculateTotals() {
@@ -1066,55 +1083,116 @@
         document.getElementById('grossTotal').textContent = grossTotal.toFixed(2);
     }
 
-    async function saveToFirebase() {
-        try {
-            await db.collection('analytics').doc('projects').set({
-                projects: projects,
-                monthlyPayments: monthlyPayments,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } catch (error) {
-            console.error("Save analytics error:", error);
-        }
+    function saveToStorage() {
+        localStorage.setItem('webswan_projects', JSON.stringify(projects));
+        localStorage.setItem('webswan_monthly', JSON.stringify(monthlyPayments));
     }
 
-    async function loadFromFirebase() {
-        try {
-            const doc = await db.collection('analytics').doc('projects').get();
-            if (doc.exists) {
-                const data = doc.data();
-                projects = data.projects || [];
-                monthlyPayments = data.monthlyPayments || [];
-                
-                renderProjects();
-                renderMonthlyPayments();
+    // CRM Search Function
+    function searchClient() {
+        const searchTerm = document.getElementById('crmSearchInput').value.trim().toLowerCase();
+        
+        if (!searchTerm) {
+            alert('Please enter a phone number or email to search');
+            return;
+        }
+
+        const results = [];
+        
+        // Search through all clients in documentData
+        Object.keys(documentData).forEach(clientEmail => {
+            const clientData = documentData[clientEmail];
+            
+            // Check if search term matches email
+            if (clientEmail.toLowerCase().includes(searchTerm)) {
+                results.push({ email: clientEmail, data: clientData });
             }
             
-            // Load clients
-            await loadClientsFromFirebase();
-            
-            // Load front office client if specified
-            await loadClientForFrontOffice();
-        } catch (error) {
-            console.error("Load analytics error:", error);
-        }
+            // Check if search term matches phone number
+            if (clientData.phone && clientData.phone.toLowerCase().includes(searchTerm)) {
+                results.push({ email: clientEmail, data: clientData });
+            }
+        });
+
+        displaySearchResults(results);
     }
 
-    // ==================== EVENT LISTENERS ====================
+    function displaySearchResults(results) {
+        const resultsContainer = document.getElementById('crmSearchResults');
+        const noResultsContainer = document.getElementById('crmNoResults');
+        const resultsList = document.getElementById('crmResultsList');
+        
+        resultsList.innerHTML = '';
+        
+        if (results.length === 0) {
+            resultsContainer.classList.add('hidden');
+            noResultsContainer.classList.remove('hidden');
+            return;
+        }
+        
+        noResultsContainer.classList.add('hidden');
+        resultsContainer.classList.remove('hidden');
+        
+        results.forEach(result => {
+            const div = document.createElement('div');
+            div.className = 'flex justify-between items-center p-3 bg-blue-50 rounded-lg';
+            div.innerHTML = `
+                <div>
+                    <strong>${result.email}</strong>
+                    <div class="text-sm text-gray-600">
+                        Phone: ${result.data.phone || 'Not provided'} | 
+                        ${result.data.analysisDataUri ? '📄 Has Report' : 'No report'} |
+                        Saved: ${result.data.timestamp ? new Date(result.data.timestamp).toLocaleDateString() : 'Unknown'}
+                    </div>
+                </div>
+                <div>
+                    <button onclick="loadClientFromSearch('${result.email}')" class="bg-green-500 text-white px-3 py-1 rounded mr-2">Load</button>
+                    <button onclick="copyClientLink('${result.email}')" class="bg-purple-500 text-white px-3 py-1 rounded mr-2">Copy Link</button>
+                    <button onclick="deleteClient('${result.email}')" class="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
+                </div>
+            `;
+            resultsList.appendChild(div);
+        });
+    }
+
+    function loadClientFromSearch(clientEmail) {
+        loadClient(clientEmail);
+        document.getElementById('crmSearchResults').classList.add('hidden');
+        document.getElementById('crmSearchInput').value = '';
+    }
+
+    // Make functions global
+    window.updateProject = updateProject;
+    window.deleteProject = deleteProject;
+    window.updateMonthlyPayment = updateMonthlyPayment;
+    window.deleteMonthlyPayment = deleteMonthlyPayment;
+    window.loadClient = loadClient;
+    window.copyClientLink = copyClientLink;
+    window.deleteClient = deleteClient;
+    window.searchClient = searchClient;
+    window.loadClientFromSearch = loadClientFromSearch;
+
     document.addEventListener('DOMContentLoaded', function() {
-        // Load data from Firebase
-        loadFromFirebase();
+        // Load clients from storage
+        loadClientsFromStorage();
+        
+        // Load projects/calculator from localStorage
+        const savedProjects = localStorage.getItem('webswan_projects');
+        const savedMonthly = localStorage.getItem('webswan_monthly');
+        if (savedProjects) projects = JSON.parse(savedProjects);
+        if (savedMonthly) monthlyPayments = JSON.parse(savedMonthly);
+        
+        renderProjects();
+        renderMonthlyPayments();
         
         // Set permanent Brand Hub URL
         document.getElementById('brandhubBtn').href = "https://taniad2169.github.io/WebSwan-Brand-Hub/";
         
         // CRM Search functionality
-        document.getElementById('crmSearchBtn').addEventListener('click', searchClientInFirebase);
-        
-        // Allow Enter key to trigger search
+        document.getElementById('crmSearchBtn').addEventListener('click', searchClient);
         document.getElementById('crmSearchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                searchClientInFirebase();
+                searchClient();
             }
         });
         
@@ -1128,26 +1206,31 @@
         document.getElementById('goToFormBtn').addEventListener('click', function() {
             document.getElementById('demoPromptModal').style.display = 'none';
             document.body.classList.remove('modal-open');
-            // Scroll to form
             document.getElementById('demoRequestForm').scrollIntoView({ behavior: 'smooth' });
         });
         
         // Form submission handler
         document.getElementById('demoRequestForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            // Show success modal
             document.getElementById('successModal').style.display = 'block';
             document.body.classList.add('modal-open');
-            
-            // Reset form
             document.getElementById('demoRequestForm').reset();
         });
         
         // Target Button & Login
         document.getElementById('targetBtn').addEventListener('click', function() {
-            document.getElementById('loginModal').style.display = 'block';
-            document.body.classList.add('modal-open');
+            targetClickCount++;
+            if (targetClickTimer) clearTimeout(targetClickTimer);
+            
+            if (targetClickCount === 3) {
+                document.getElementById('loginModal').style.display = 'block';
+                document.body.classList.add('modal-open');
+                targetClickCount = 0;
+            } else {
+                targetClickTimer = setTimeout(function() {
+                    targetClickCount = 0;
+                }, 2000);
+            }
         });
 
         document.getElementById('closeLoginModal').addEventListener('click', function() {
@@ -1155,21 +1238,23 @@
             document.body.classList.remove('modal-open');
         });
 
-        document.getElementById('loginBtn').addEventListener('click', async function() {
-            const email = document.getElementById('emailInput').value;
+        document.getElementById('loginBtn').addEventListener('click', function() {
             const password = document.getElementById('passwordInput').value;
-            
-            const user = await secureLogin(email, password);
-            if (user) {
+            if (password === ADMIN_PASSWORD) {
                 document.getElementById('loginModal').style.display = 'none';
                 document.getElementById('frontOffice').style.display = 'none';
                 document.getElementById('backOffice').style.display = 'block';
                 document.body.classList.remove('modal-open');
-                document.getElementById('emailInput').value = '';
                 document.getElementById('passwordInput').value = '';
                 document.getElementById('loginError').classList.add('hidden');
             } else {
                 document.getElementById('loginError').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginBtn').click();
             }
         });
 
@@ -1180,7 +1265,7 @@
         });
 
         // Document Management
-        document.getElementById('saveDocumentsBtn').addEventListener('click', saveDocumentsToFirebase);
+        document.getElementById('saveDocumentsBtn').addEventListener('click', saveDocuments);
 
         // Project Calculator
         document.getElementById('addProjectBtn').addEventListener('click', addProject);
@@ -1220,17 +1305,6 @@
             }
         });
     });
-
-    // ==================== GLOBAL FUNCTIONS ====================
-    window.updateProject = updateProject;
-    window.deleteProject = deleteProject;
-    window.updateMonthlyPayment = updateMonthlyPayment;
-    window.deleteMonthlyPayment = deleteMonthlyPayment;
-    window.loadClient = loadClientFromFirebase;
-    window.copyClientLink = copySecureClientLink;
-    window.deleteClient = deleteClientFromFirebase;
-    window.searchClient = searchClientInFirebase;
-    window.loadClientFromSearch = loadClientFromSearch;
 </script>
 </body>
 </html>
