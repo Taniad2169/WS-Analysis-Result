@@ -6,9 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         html {
             height: 100%;
@@ -871,45 +868,23 @@
 </div>
 
 <script>
-// Firebase Configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyAqhqUzWqpS7YunkODJU_udTBG3pjsJegQ",
-    authDomain: "webswan-marketing.firebaseapp.com",
-    projectId: "webswan-marketing",
-    storageBucket: "webswan-marketing.firebasestorage.app",
-    messagingSenderId: "556357112107",
-    appId: "1:556357112107:web:6c8bd74e3a7caf9a2d756e",
-    measurementId: "G-M7NDR4DTEW"
-};
-
-let db = null;
-try {
-    if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
-        firebase.initializeApp(firebaseConfig);
-        db = firebase.firestore();
-        console.log("🔥 Firestore initialized successfully!");
-    }
-} catch (error) {
-    console.warn("⚠️ Firebase not available, using localStorage only:", error);
-}
-
-const ADMIN_PASSWORD = '333';
-let targetClickCount = 0;
-let targetClickTimer = null;
-const BASE_URL = 'https://taniad2169.github.io/WS-Analysis-Result/';
-
-// State Compliance Links
+// State Compliance Links - UPDATED WITH CORRECT CALIFORNIA URL
 const stateLinks = {
     "new york": "https://www.google.com/search?q=new+york+consumer+protection+law+on+website+compliance",
     "florida": "https://www.google.com/search?q=fipa+florida+digital+bill+of+rights",
     "texas": "https://www.sll.texas.gov/spotlight/2024/07/texas-data-privacy-and-security-act/",
-    "california": "https://www.google.com/search?q=california+consumer+privacy+act+website+compliance",
+    "california": "https://cppa.ca.gov/announcements/2024/20241217.html",
     "north carolina": "https://www.google.com/search?q=north+carolina+accessibility+and+privacy+website+law",
     "south carolina": "https://www.google.com/search?q=south+carolina+attorney+general+website+compliance+penalty+amount",
     "virginia": "https://www.google.com/search?q=virginia+state+attorney+general+regulation+on+website+privacy+and+accessibility",
     "georgia": "https://www.google.com/search?q=georgia+website+compliance+privacy+accessibility+laws",
     "other": "https://beaccessible.com/ada-compliance-by-state/"
 };
+
+const ADMIN_PASSWORD = '333';
+let targetClickCount = 0;
+let targetClickTimer = null;
+const BASE_URL = 'https://taniad2169.github.io/WS-Analysis-Result/';
 
 // ADD THIS FUNCTION FOR THE BACK OFFICE ARROW
 function goBackToClientSide() {
@@ -1010,10 +985,179 @@ document.addEventListener('DOMContentLoaded', function() {
     // Keep the existing back button functionality
     document.getElementById('backToFrontBtn').addEventListener('click', goBackToClientSide);
     
-    // ... (rest of your existing JavaScript code for document management, etc.)
+    // Demo button functionality
+    document.getElementById('demoBtn').addEventListener('click', function() {
+        document.getElementById('demoPromptModal').style.display = 'block';
+        document.body.classList.add('modal-open');
+    });
+    
+    document.getElementById('goToFormBtn').addEventListener('click', function() {
+        document.getElementById('demoPromptModal').style.display = 'none';
+        document.body.classList.remove('modal-open');
+        document.getElementById('demoRequestForm').scrollIntoView({ behavior: 'smooth' });
+    });
+    
+    document.getElementById('closeDemoPromptModal').addEventListener('click', function() {
+        document.getElementById('demoPromptModal').style.display = 'none';
+        document.body.classList.remove('modal-open');
+    });
+    
+    // Form submission
+    document.getElementById('demoRequestForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        document.getElementById('successModal').style.display = 'block';
+        document.body.classList.add('modal-open');
+        this.reset();
+    });
+    
+    document.getElementById('modalOkBtn').addEventListener('click', function() {
+        document.getElementById('successModal').style.display = 'none';
+        document.body.classList.remove('modal-open');
+    });
+    
+    document.getElementById('closeSuccessModal').addEventListener('click', function() {
+        document.getElementById('successModal').style.display = 'none';
+        document.body.classList.remove('modal-open');
+    });
+    
+    // Analysis button functionality
+    document.getElementById('analysisBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        alert("The analysis document would be displayed here. In a real implementation, this would show the client's specific analysis document.");
+    });
 });
 
-// ... (all your existing document management and other JavaScript code remains exactly the same)
+// Simple localStorage-based document management
+document.addEventListener('DOMContentLoaded', function() {
+    const saveDocumentsBtn = document.getElementById('saveDocumentsBtn');
+    const clientList = document.getElementById('clientList');
+    
+    // Load saved clients on page load
+    loadClients();
+    
+    saveDocumentsBtn.addEventListener('click', function() {
+        const email = document.getElementById('docLeadIdentifier').value;
+        const phone = document.getElementById('docClientPhone').value;
+        const demoUrl = document.getElementById('docDemoUrl').value;
+        const brandhubUrl = document.getElementById('docBrandhubUrl').value;
+        
+        if (!email) {
+            alert("Please enter a client email address");
+            return;
+        }
+        
+        // Save client data to localStorage
+        const clientData = {
+            email: email,
+            phone: phone,
+            demoUrl: demoUrl,
+            brandhubUrl: brandhubUrl,
+            timestamp: new Date().toISOString()
+        };
+        
+        let clients = JSON.parse(localStorage.getItem('webswan_clients') || '{}');
+        clients[email] = clientData;
+        localStorage.setItem('webswan_clients', JSON.stringify(clients));
+        
+        // Show success message
+        const docMessage = document.getElementById('docMessage');
+        docMessage.textContent = `Client ${email} saved successfully!`;
+        docMessage.classList.remove('hidden');
+        
+        setTimeout(() => {
+            docMessage.classList.add('hidden');
+        }, 3000);
+        
+        // Reload client list
+        loadClients();
+    });
+    
+    function loadClients() {
+        const clients = JSON.parse(localStorage.getItem('webswan_clients') || '{}');
+        clientList.innerHTML = '';
+        
+        if (Object.keys(clients).length === 0) {
+            clientList.innerHTML = '<p class="text-center text-gray-500">No clients saved yet.</p>';
+            return;
+        }
+        
+        for (const [email, data] of Object.entries(clients)) {
+            const clientDiv = document.createElement('div');
+            clientDiv.className = 'bg-gray-100 p-3 rounded-lg flex justify-between items-center';
+            clientDiv.innerHTML = `
+                <div>
+                    <strong>${email}</strong><br>
+                    <small class="text-gray-600">Phone: ${data.phone || 'Not provided'}</small>
+                </div>
+                <div class="flex gap-2">
+                    <button class="load-client bg-blue-500 text-white px-3 py-1 rounded text-sm" data-email="${email}">Load</button>
+                    <button class="copy-link bg-green-500 text-white px-3 py-1 rounded text-sm" data-email="${email}">Copy Link</button>
+                    <button class="delete-client bg-red-500 text-white px-3 py-1 rounded text-sm" data-email="${email}">Delete</button>
+                </div>
+            `;
+            clientList.appendChild(clientDiv);
+        }
+        
+        // Add event listeners to buttons
+        document.querySelectorAll('.load-client').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const email = this.getAttribute('data-email');
+                loadClientData(email);
+            });
+        });
+        
+        document.querySelectorAll('.copy-link').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const email = this.getAttribute('data-email');
+                copyClientLink(email);
+            });
+        });
+        
+        document.querySelectorAll('.delete-client').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const email = this.getAttribute('data-email');
+                deleteClient(email);
+            });
+        });
+    }
+    
+    function loadClientData(email) {
+        const clients = JSON.parse(localStorage.getItem('webswan_clients') || '{}');
+        const clientData = clients[email];
+        
+        if (clientData) {
+            document.getElementById('docLeadIdentifier').value = clientData.email || '';
+            document.getElementById('docClientPhone').value = clientData.phone || '';
+            document.getElementById('docDemoUrl').value = clientData.demoUrl || '';
+            document.getElementById('docBrandhubUrl').value = clientData.brandhubUrl || '';
+        }
+    }
+    
+    function copyClientLink(email) {
+        // In a real implementation, this would copy the client's specific report link
+        navigator.clipboard.writeText(`${BASE_URL}?client=${encodeURIComponent(email)}`)
+            .then(() => {
+                alert(`Link for ${email} copied to clipboard!`);
+                // Clear the form
+                document.getElementById('docLeadIdentifier').value = '';
+                document.getElementById('docClientPhone').value = '';
+                document.getElementById('docDemoUrl').value = '';
+                document.getElementById('docBrandhubUrl').value = 'https://taniad2169.github.io/WebSwan-Brand-Hub/';
+            })
+            .catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+    }
+    
+    function deleteClient(email) {
+        if (confirm(`Are you sure you want to delete ${email}?`)) {
+            let clients = JSON.parse(localStorage.getItem('webswan_clients') || '{}');
+            delete clients[email];
+            localStorage.setItem('webswan_clients', JSON.stringify(clients));
+            loadClients();
+        }
+    }
+});
 </script>
 </body>
 </html>
